@@ -16,6 +16,8 @@ class STRATEGYGAME_API ASpectatorPlayerPawn : public ASpectatorPawn
 public:
 
 	ASpectatorPlayerPawn(const FObjectInitializer& ObjectInitializer);
+
+	virtual void SetupPlayerInputComponent(UInputComponent* PlayerInputComponent) override;
 	
 	USpectatorCameraComponent* GetSpectatorCameraComponent() const { return SpectatorCameraComponent; }
 

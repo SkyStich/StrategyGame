@@ -22,3 +22,14 @@ void ASpectatorPlayerController::UpdateRotation(float DeltaTime)
 	}
 	SetControlRotation(ViewRotation);
 }
+
+USpectatorCameraComponent* ASpectatorPlayerController::GetSpectatorCameraComponent()
+{
+	if(!GetPawn())
+	{
+		UE_LOG(LogPlayerController, Error, TEXT("--Controlled pawn is null"), *GetFullName());
+		return nullptr;
+	}
+	return GetPawn()->FindComponentByClass<USpectatorCameraComponent>();
+}
+
