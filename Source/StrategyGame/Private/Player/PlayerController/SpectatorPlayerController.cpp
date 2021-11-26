@@ -6,7 +6,8 @@
 
 ASpectatorPlayerController::ASpectatorPlayerController(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
 {
-
+	bReplicates = true;
+	NetUpdateFrequency = 5.f;
 }
 
 void ASpectatorPlayerController::UpdateRotation(float DeltaTime)

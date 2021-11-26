@@ -11,6 +11,8 @@ ASpectatorPlayerPawn::ASpectatorPlayerPawn(const FObjectInitializer& ObjectIniti
 
 	GetCollisionComponent()->SetCollisionProfileName("NoCollision");
 	bAddDefaultMovementBindings = false;
+	bReplicates = true;
+	NetUpdateFrequency = 10.f;
 }
 
 void ASpectatorPlayerPawn::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
