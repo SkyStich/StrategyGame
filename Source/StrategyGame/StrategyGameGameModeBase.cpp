@@ -9,4 +9,6 @@ AStrategyGameGameModeBase::AStrategyGameGameModeBase()
 {
 	DefaultPawnClass = ASpectatorPlayerPawn::StaticClass();
 	PlayerControllerClass = ASpectatorPlayerController::StaticClass();
+	SpectatorClass = ASpectatorPlayerPawn::StaticClass();
+	bStartPlayersAsSpectators = true;
 }

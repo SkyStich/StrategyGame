@@ -38,6 +38,13 @@ public:
 	/** Increase current amount of the camera zoom */
 	void IncreaseZoomLevel();
 
+	/** Update camera movement with mouse support */
+	void UpdateCameraMovement(APlayerController* InPlayerController);
+
+	/** Move owner pawn */
+	void MoveForward(const float Value);
+	void MoveRight(const float Value);
+
 public:
 
 	/** The minimum offset of the camera */
@@ -51,6 +58,14 @@ public:
 	/** The angle to look down on the map. */
 	UPROPERTY(config)
 	FRotator FixedCameraAngle;
+	
+	/** Size of the area at the edge of the screen that will trigger camera scrolling. */
+    UPROPERTY(config)
+    uint32 CameraActiveBorder;
+    
+	/** How fast the camera moves around when the mouse is at the edge of the screen. */
+	UPROPERTY(config)
+	float CameraScrollSpeed;
 
 private:
 	/** Current amount of the camera zoom */

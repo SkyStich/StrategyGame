@@ -12,6 +12,11 @@ UCLASS()
 class STRATEGYGAME_API ASpectatorPlayerPawn : public ASpectatorPawn
 {
 	GENERATED_BODY()
+
+private:
+
+	virtual void MoveForward(float Val) override;
+	virtual void MoveRight(float Val) override;
 	
 public:
 

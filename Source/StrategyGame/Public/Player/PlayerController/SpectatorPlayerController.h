@@ -16,6 +16,11 @@ class STRATEGYGAME_API ASpectatorPlayerController : public APlayerController
 	/** Helper for find spectator camera component from controlled pawn */
 	USpectatorCameraComponent* GetSpectatorCameraComponent();
 
+protected:
+
+	virtual void ProcessPlayerInput(const float DeltaTime, const bool bGamePaused) override;
+	virtual void BeginPlay() override;
+
 public:
 
 	ASpectatorPlayerController(const FObjectInitializer& ObjectInitializer);

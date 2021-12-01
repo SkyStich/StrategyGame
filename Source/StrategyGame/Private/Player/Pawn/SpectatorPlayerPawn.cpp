@@ -3,9 +3,11 @@
 
 #include "Player/Pawn/SpectatorPlayerPawn.h"
 #include "Components/SphereComponent.h"
+#include "Player/Components/PlayerSpectatorPawnMovement.h"
 #include "Player/Components/SpectatorCameraComponent.h"
 
-ASpectatorPlayerPawn::ASpectatorPlayerPawn(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
+ASpectatorPlayerPawn::ASpectatorPlayerPawn(const FObjectInitializer& ObjectInitializer) :
+	Super(ObjectInitializer.SetDefaultSubobjectClass<UPlayerSpectatorPawnMovement>(Super::MovementComponentName))
 {
 	SpectatorCameraComponent = CreateDefaultSubobject<USpectatorCameraComponent>(TEXT("SpectatorCameraComponent"));
 
@@ -19,6 +21,22 @@ void ASpectatorPlayerPawn::SetupPlayerInputComponent(UInputComponent* PlayerInpu
 {
 	check(PlayerInputComponent);
 
+	/** Zoom input binding */
 	PlayerInputComponent->BindAction("ZoomIn", IE_Pressed, SpectatorCameraComponent, &USpectatorCameraComponent::DecreaseZoomLevel);
 	PlayerInputComponent->BindAction("ZoomOut", IE_Pressed, SpectatorCameraComponent, &USpectatorCameraComponent::IncreaseZoomLevel);
+
+	/** Move Input binding */
+	PlayerInputComponent->BindAxis("MoveForward", this, &ASpectatorPlayerPawn::MoveForward);
+	PlayerInputComponent->BindAxis("MoveRight", this, &ASpectatorPlayerPawn::MoveRight);
 }
+
+void ASpectatorPlayerPawn::MoveForward(float Val)
+{
+	SpectatorCameraComponent->MoveForward(Val);
+}
+
+void ASpectatorPlayerPawn::MoveRight(float Val)
+{
+	SpectatorCameraComponent->MoveRight(Val);
+}
+
