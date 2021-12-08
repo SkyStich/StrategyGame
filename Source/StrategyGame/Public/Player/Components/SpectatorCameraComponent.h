@@ -41,8 +41,10 @@ public:
 	/** Update camera movement with mouse support */
 	void UpdateCameraMovement(APlayerController* InPlayerController);
 
-	/** Move owner pawn */
+	/** Move forward owner pawn */
 	void MoveForward(const float Value);
+	
+	/** Move right owner pawn */
 	void MoveRight(const float Value);
 
 public:

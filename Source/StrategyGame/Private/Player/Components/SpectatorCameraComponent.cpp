@@ -27,6 +27,8 @@ void USpectatorCameraComponent::GetCameraView(float DeltaTime, FMinimalViewInfo&
 		float const CurrentOffset = MinCameraOffset + ZoomAlpha * (MaxCameraOffset - MinCameraOffset);
 		
 		FVector Pos2 = PlayerController->GetFocalLocation();
+
+		/** calculate camera location and rotation */
 		DesiredView.Location = PlayerController->GetFocalLocation() - FixedCameraAngle.Vector() * CurrentOffset;
 		DesiredView.Rotation = FixedCameraAngle;
 	}
@@ -149,28 +151,24 @@ void USpectatorCameraComponent::UpdateCameraMovement(APlayerController* InPlayer
 		if(MouseX >= ViewLeft && MouseX <= (ViewLeft + CameraActiveBorder))
 		{
 			const float Delta = 1.f - float(MouseX - ViewLeft) / CameraActiveBorder;
-			SpectatorCameraSpeed = Delta * MaxCameraSpeed;
-			MoveRight(-ScrollSpeed * 1);
+			MoveRight(-ScrollSpeed * Delta);
 		}
 		else if(MouseX <= ViewRight && MouseX >= (ViewRight - CameraActiveBorder))
 		{
 			const float Delta = 1.f - float(MouseX - ViewRight + CameraActiveBorder) / CameraActiveBorder;
-			SpectatorCameraSpeed = Delta * MaxCameraSpeed;
-			MoveRight(ScrollSpeed * 1);
+			MoveRight(ScrollSpeed * Delta);
 		}
 
 		/** Move forward */
 		if(MouseY >= ViewTop && MouseY <= (ViewTop + CameraActiveBorder))
 		{
 			const float Delta = 1.f - float(MouseY - ViewTop) / CameraActiveBorder;
-			SpectatorCameraSpeed = Delta * MaxCameraSpeed;
-			MoveForward(ScrollSpeed * 1);
+			MoveForward(ScrollSpeed * Delta);
 		}
 		else if(MouseY <= ViewBottom && MouseY >= (ViewBottom - CameraActiveBorder))
 		{
 			const float Delta = 1.f - float(MouseY - ViewBottom + CameraActiveBorder) / CameraActiveBorder;
-			SpectatorCameraSpeed = Delta * MaxCameraSpeed;
-			MoveForward(-ScrollSpeed * 1);
+			MoveForward(-ScrollSpeed * Delta);
 		}
 
 		if(SpectatorPawn)
