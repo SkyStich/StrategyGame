@@ -2,7 +2,7 @@
 
 
 #include "Player/PlayerController/SpectatorPlayerController.h"
-
+#include "Net/UnrealNetwork.h"
 #include "DrawDebugHelpers.h"
 #include "Engine/PostProcessVolume.h"
 #include "Kismet/GameplayStatics.h"
@@ -42,6 +42,22 @@ void ASpectatorPlayerController::Tick(float DeltaSeconds)
 	{
 		UpdateHighlightedActor();
 	}
+}
+
+void ASpectatorPlayerController::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
+{
+	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+
+	DOREPLIFETIME_CONDITION(ASpectatorPlayerController, TargetActor, COND_OwnerOnly);
+}
+
+void ASpectatorPlayerController::SetupInputComponent()
+{
+	Super::SetupInputComponent();
+
+	check(InputComponent);
+
+	InputComponent->BindAction("SelectActor", IE_Released, this, &ASpectatorPlayerController::OnSelectActorPressed);
 }
 
 void ASpectatorPlayerController::UpdateRotation(float DeltaTime)
@@ -124,6 +140,7 @@ void ASpectatorPlayerController::UpdateHighlightedActor()
 	
 	DebugTraceFromMousePosition(OutHit);
 	
+	/** if the object is no longer selected, clear the static variable and turn it off custom depth  */
 	if(HighlightedActor)
 	{
 		UpdateCustomDepthFromActor(HighlightedActor, false);
@@ -141,6 +158,8 @@ void ASpectatorPlayerController::DebugTraceFromMousePosition(const FHitResult& O
 
 void ASpectatorPlayerController::UpdateCustomDepthFromActor(AActor* Actor, bool bState)
 {
+	if(TargetActor == Actor) return;
+	
 	/** set custom depth for static mesh */
 	TArray<UStaticMeshComponent*> MeshComponents;
 	Actor->GetComponents<UStaticMeshComponent>(MeshComponents);
@@ -157,4 +176,49 @@ void ASpectatorPlayerController::UpdateCustomDepthFromActor(AActor* Actor, bool 
 		ByArray->SetRenderCustomDepth(bState);
 	}
 }
+
+void ASpectatorPlayerController::SetTargetActor(AActor* NewTarget)
+{
+	if(GetLocalRole() == ROLE_Authority)
+	{
+		TargetActor = NewTarget;
+		OnRep_TargetActor();
+	}
+}
+
+void ASpectatorPlayerController::OnRep_TargetActor()
+{
+	TargetActorUpdated.Broadcast(TargetActor);
+}
+
+void ASpectatorPlayerController::OnSelectActorPressed()
+{
+	FHitResult OutHit;
+	
+	ETraceTypeQuery const TraceChannel = UCollisionProfile::Get()->ConvertToTraceType(ECC_GameTraceChannel1);
+	
+	if(GetHitResultUnderCursorByChannel(TraceChannel, true, OutHit) && OutHit.GetActor())
+	{
+		if(OutHit.GetActor()->GetClass()->ImplementsInterface(UHighlightedInterface::StaticClass()))
+		{
+			if(!TargetActor || TargetActor != OutHit.GetActor()) Server_SelectedActor(OutHit.GetActor());
+			
+#if UE_EDITOR
+			UKismetSystemLibrary::PrintString(GetWorld(), *OutHit.GetActor()->GetName());
+#endif
+		}
+	}
+}
+
+void ASpectatorPlayerController::Server_SelectedActor_Implementation(AActor* SelectedActor)
+{
+	if(SelectedActor->GetClass()->ImplementsInterface(UHighlightedInterface::StaticClass()))
+	{
+		SetTargetActor(SelectedActor);
+#if UE_EDITOR
+		UKismetSystemLibrary::PrintString(GetWorld(), SelectedActor->GetName());
+#endif
+	}
+}
+
 
