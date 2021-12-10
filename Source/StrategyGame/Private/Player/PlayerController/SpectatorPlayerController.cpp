@@ -9,15 +9,15 @@
 #include "Player/Components/SpectatorCameraComponent.h"
 #include "Player/Interfaces/HighlightedInterface.h"
 #include "UObject/ConstructorHelpers.h"
+#include "Player/HUD/StrategyGameBaseHUD.h"
 
 ASpectatorPlayerController::ASpectatorPlayerController(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
 {
 	PrimaryActorTick.bCanEverTick = true;
-	
+
+	bShowMouseCursor =  true;
 	bReplicates = true;
 	NetUpdateFrequency = 1.f;
-	
-	bShowMouseCursor =  true;
 
 	static ConstructorHelpers::FObjectFinder<UMaterialInstance> HighlightedInstanceFinder(TEXT("/Game/Assets/SelectingObject/Materials/PP_Outliner_Inst"));
 	if(HighlightedInstanceFinder.Succeeded()) HighlightedMaterialInstance = HighlightedInstanceFinder.Object;
@@ -83,6 +83,11 @@ USpectatorCameraComponent* ASpectatorPlayerController::GetSpectatorCameraCompone
 		return nullptr;
 	}
 	return GetPawnOrSpectator()->FindComponentByClass<USpectatorCameraComponent>();
+}
+
+AStrategyGameBaseHUD* ASpectatorPlayerController::GetStrategyGameBaseHUD() const
+{
+	return GetHUD<AStrategyGameBaseHUD>();
 }
 
 void ASpectatorPlayerController::ProcessPlayerInput(const float DeltaTime, const bool bGamePaused)

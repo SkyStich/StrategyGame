@@ -7,6 +7,7 @@
 #include "SpectatorPlayerController.generated.h"
 
 class USpectatorCameraComponent;
+class AStrategyGameBaseHUD;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FTargetActorUpdated, AActor*, TargetActor);
 
@@ -17,6 +18,9 @@ class STRATEGYGAME_API ASpectatorPlayerController : public APlayerController
 
 	/** Helper for find spectator camera component from controlled pawn */
 	USpectatorCameraComponent* GetSpectatorCameraComponent();
+
+	/** Helper for get Strategy hud base */
+	AStrategyGameBaseHUD* GetStrategyGameBaseHUD() const;
 
 	/** Spawn post process on owning client for selection object */
 	void SpawnPostProcess();
