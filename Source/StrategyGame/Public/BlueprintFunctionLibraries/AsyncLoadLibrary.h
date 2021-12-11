@@ -19,12 +19,20 @@ public:
 	/** Async  spawn AActor classes */
 	template<class T>
 	UFUNCTION(BlueprintCallable, Category = "SelectObjectAsset|AsyncSpawn", meta = (WorldContext = "WorldContextObject", DisplayName = "Spawn building (Async)"))
-    static void AsyncSpawnBaseBuilding(UObject* WorldContext, TAssetSubclassOf<T> BuildingClass, FTransform Transform, FSpawnBuildingComplete Callback)
+    static bool AsyncSpawnBaseBuilding(UObject* WorldContext, TAssetSubclassOf<T> Class, FTransform Transform, FSpawnBuildingComplete Callback)
 	{
+		if(Class.IsNull)
+		{
+			const FString InstigatorName(WorldContext ? WorldContext->GetFullName() : "Unknown");
+			UE_LOG(LogTemp, Error, TEXT("Asset is nill --%d"), *InstigatorName);
+			return false;
+		}
+		
 		FStreamableManager& AssetLoad = USingletonClass::Get().AssetLoader;
-    	FSoftObjectPath const SoftObjectPath = BuildingClass.ToSoftObjectPath();
+    	FSoftObjectPath const SoftObjectPath = Class.ToSoftObjectPath();
     	AssetLoad.RequestAsyncLoad(SoftObjectPath, FStreamableDelegate::CreateStatic(&UAsyncLoadLibrary::OnAsyncSpawnBaseActorComplete<T>, WorldContext, SoftObjectPath, Transform, Callback));
-    }
+		return true;
+	}
 
 	template<class T>
 	static void OnAsyncSpawnBaseActorComplete(UObject* WorldContextObject, FSoftObjectPath SoftObjectPath, FTransform SpawnTransform, FSpawnBuildingComplete Callback)
