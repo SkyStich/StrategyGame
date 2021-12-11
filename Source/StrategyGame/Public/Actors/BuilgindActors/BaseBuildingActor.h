@@ -3,13 +3,14 @@
 #pragma once
 
 #include "CoreMinimal.h"
-
+#include "Structs/SelectedObjectInfoBase.h"
+#include "Player/Interfaces/HighlightedInterface.h"
 #include "Components/BoxComponent.h"
 #include "GameFramework/Actor.h"
 #include "BaseBuildingActor.generated.h"
 
 UCLASS()
-class STRATEGYGAME_API ABaseBuildingActor : public AActor
+class STRATEGYGAME_API ABaseBuildingActor : public AActor, public IHighlightedInterface
 {
 	GENERATED_BODY()
 	
@@ -18,13 +19,13 @@ public:
 	ABaseBuildingActor();
 
 	UFUNCTION(BlueprintPure, Category = "Building|Getting")
-	FText GetBuildingName() const { return BuildingName; }
+	FName GetRowName() const { return RowName; }
 
 	UFUNCTION(BlueprintPure, Category = "Building|Getting")
-	FText GetDescription() const { return Description; }
-
-	UFUNCTION(BlueprintPure, Category = "Building|Getting")
-	UTexture2D* GetIcon() const;
+	FSelectedObjectInfo GetSelectedObjectInfo() const { return *SelectedObjectInfo; }
+	
+	UFUNCTION(BlueprintCallable, BlueprintNativeEvent, Category = "Interfaces", meta=(DisplayName="BP_HilighlightInterface"))
+    void HighlightedActor(APlayerController* PlayerController);
 
 protected:
 
@@ -33,17 +34,13 @@ protected:
 private:
 
 	UPROPERTY(EditDefaultsOnly, Category = "Info")
-	FText BuildingName;
-
-	UPROPERTY(EditDefaultsOnly, Category = "Info")
-	FText Description;
-
-	UPROPERTY(EditDefaultsOnly, Category = "Info")
-	TAssetPtr<UTexture2D> Icon;
+	FName RowName;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Info", meta=(AllowPrivateAccess="true"))
 	UBoxComponent* BoxCollision;
 	
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Info", meta=(AllowPrivateAccess="true"))
 	UStaticMeshComponent* StaticMeshComponent;
+
+	FSelectedObjectInfo* SelectedObjectInfo;
 };

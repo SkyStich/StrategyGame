@@ -3,6 +3,7 @@
 
 #include "Actors/BuilgindActors/BaseBuildingActor.h"
 #include "Singleton/SingletonClass.h"
+#include "UObject/ConstructorHelpers.h"
 
 // Sets default values
 ABaseBuildingActor::ABaseBuildingActor()
@@ -18,6 +19,12 @@ ABaseBuildingActor::ABaseBuildingActor()
 	
 	StaticMeshComponent = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("StaticMesh"));
 	StaticMeshComponent->SetupAttachment(RootComponent);
+
+	static ConstructorHelpers::FObjectFinder<UDataTable>BuildingDataTableFinder(TEXT("/Game/Blueprints/DataTables/DT_BuildingObjectInfo"));
+	if(BuildingDataTableFinder.Succeeded())
+	{
+		SelectedObjectInfo = BuildingDataTableFinder.Object->FindRow<FBuildingObjectInfo>(RowName, "DT_BuildingObjectInfo");
+	}
 }
 
 // Called when the game starts or when spawned
@@ -27,14 +34,7 @@ void ABaseBuildingActor::BeginPlay()
 	
 }
 
-UTexture2D* ABaseBuildingActor::GetIcon() const
+void ABaseBuildingActor::HighlightedActor_Implementation(APlayerController* PlayerController)
 {
-	FStreamableManager& AssetLoader = USingletonClass::Get().AssetLoader;
-	if(Icon.IsValid())
-	{
-		FSoftObjectPath const ObjectPath = Icon.ToSoftObjectPath();
-		return Cast<UTexture2D>(AssetLoader.LoadSynchronous(ObjectPath));
-	}
-	return nullptr;
+	
 }
-
