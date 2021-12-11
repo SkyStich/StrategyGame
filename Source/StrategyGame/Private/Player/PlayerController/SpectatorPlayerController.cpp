@@ -75,6 +75,13 @@ void ASpectatorPlayerController::UpdateRotation(float DeltaTime)
 	SetControlRotation(ViewRotation);
 }
 
+void ASpectatorPlayerController::OnRep_Pawn()
+{
+	Super::OnRep_Pawn();
+
+	if(GetLocalRole() != ROLE_Authority) OnNewPawn.Broadcast(GetPawn());
+}
+
 USpectatorCameraComponent* ASpectatorPlayerController::GetSpectatorCameraComponent()
 {
 	if(!GetPawnOrSpectator())
@@ -157,7 +164,7 @@ void ASpectatorPlayerController::DebugTraceFromMousePosition(const FHitResult& O
 {
 #if UE_EDITOR
 	DrawDebugLine(GetWorld(), OutHit.TraceStart, OutHit.TraceEnd, FColor::Blue, false, 0.f);
-	DrawDebugSphere(GetWorld(), OutHit.ImpactPoint, 4.f, 6.f, FColor::Yellow, false, 0.f);
+	DrawDebugSphere(GetWorld(), OutHit.ImpactPoint, 72.f, 8.f, FColor::Yellow, false, 0.f);
 #endif
 }
 
@@ -193,6 +200,11 @@ void ASpectatorPlayerController::SetTargetActor(AActor* NewTarget)
 
 void ASpectatorPlayerController::OnRep_TargetActor()
 {
+	if(TargetActor)
+	{
+		IHighlightedInterface::Execute_HighlightedActor(TargetActor, this);
+	}
+	
 	TargetActorUpdated.Broadcast(TargetActor);
 }
 
