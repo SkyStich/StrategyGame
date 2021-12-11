@@ -49,6 +49,7 @@ protected:
 	virtual void ProcessPlayerInput(const float DeltaTime, const bool bGamePaused) override;
 
 	virtual void BeginPlay() override;
+	virtual void OnRep_Pawn() override;
 
 public:
 
