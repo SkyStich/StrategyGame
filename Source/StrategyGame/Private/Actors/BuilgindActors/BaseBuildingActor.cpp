@@ -2,9 +2,7 @@
 
 
 #include "Actors/BuilgindActors/BaseBuildingActor.h"
-#include "Singleton/SingletonClass.h"
-#include "UObject/ConstructorHelpers.h"
-
+#include "Player/PlayerController/SpectatorPlayerController.h"
 // Sets default values
 ABaseBuildingActor::ABaseBuildingActor()
 {
@@ -15,16 +13,12 @@ ABaseBuildingActor::ABaseBuildingActor()
 	NetUpdateFrequency = 1.f;
 
 	BoxCollision = CreateDefaultSubobject<UBoxComponent>(TEXT("BoxComponent"));
+	BoxCollision->SetCollisionResponseToChannel(ECC_Camera, ECR_Ignore);
 	RootComponent = BoxCollision;
 	
 	StaticMeshComponent = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("StaticMesh"));
+	StaticMeshComponent->SetCollisionResponseToChannel(ECC_Camera, ECR_Ignore);
 	StaticMeshComponent->SetupAttachment(RootComponent);
-
-	static ConstructorHelpers::FObjectFinder<UDataTable>BuildingDataTableFinder(TEXT("/Game/Blueprints/DataTables/DT_BuildingObjectInfo"));
-	if(BuildingDataTableFinder.Succeeded())
-	{
-		SelectedObjectInfo = BuildingDataTableFinder.Object->FindRow<FBuildingObjectInfo>(RowName, "DT_BuildingObjectInfo");
-	}
 }
 
 // Called when the game starts or when spawned
@@ -34,7 +28,17 @@ void ABaseBuildingActor::BeginPlay()
 	
 }
 
+void ABaseBuildingActor::Tick(float DeltaTime)
+{
+	Super::Tick(DeltaTime);
+}
+
+void ABaseBuildingActor::SetOwnerController(ASpectatorPlayerController* Controller)
+{
+	OwnerPlayerController = Controller;	
+}
+
 void ABaseBuildingActor::HighlightedActor_Implementation(APlayerController* PlayerController)
 {
-	
+
 }

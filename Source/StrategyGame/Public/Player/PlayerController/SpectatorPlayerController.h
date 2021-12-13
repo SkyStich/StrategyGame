@@ -32,16 +32,9 @@ class STRATEGYGAME_API ASpectatorPlayerController : public APlayerController
 	/** Call on select actor (left mouse button default) */
 	void OnSelectActorPressed();
 
-	/** Write new target actor */
-	void SetTargetActor(AActor* NewTarget);
-
-	/** Rep notify by target actor */
-	UFUNCTION()
-	void OnRep_TargetActor();
-
-	/** Call on select actor on server if the client's checks were correct */
-	UFUNCTION(Server, Reliable, Category = "Replicated")
-	void Server_SelectedActor(AActor* SelectedActor);
+	/** Add new target actor */
+	void AddTargetActor(AActor* NewTarget);
+	void ClearTargetActors();
 
 protected:
 
@@ -60,16 +53,24 @@ public:
 	virtual void GetLifetimeReplicatedProps(TArray< FLifetimeProperty > & OutLifetimeProps) const override;
 	virtual void SetupInputComponent() override;
 
+	const FHitResult& GetMousePositionResult() const { return MousePositionResult; }
+
 private:
 
 	UPROPERTY()
 	UMaterialInstance* HighlightedMaterialInstance;
 	
-	UPROPERTY(ReplicatedUsing = OnRep_TargetActor)
-	AActor* TargetActor;
+	UPROPERTY()
+	TArray<AActor*> TargetActors;
+	
+	/** Mouse hit result with line trace from mouse position. Valid on owning client */
+	FHitResult MousePositionResult;
 
 public:
 
 	UPROPERTY(BlueprintAssignable, Category = "Delegate", meta = (AllowPrivateAccess = "true"))
 	FTargetActorUpdated TargetActorUpdated;
+
+	/** if true, line trace with mouse be ignore all components when can be selected. Live on client */
+	bool bIgnoreHighlighted;
 };

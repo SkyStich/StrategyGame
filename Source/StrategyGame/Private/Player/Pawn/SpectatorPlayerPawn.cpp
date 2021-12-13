@@ -5,6 +5,8 @@
 #include "Components/SphereComponent.h"
 #include "Player/Components/PlayerSpectatorPawnMovement.h"
 #include "Player/Components/SpectatorCameraComponent.h"
+#include "UObject/ConstructorHelpers.h"
+#include "ThreadTasks/AsyncLoadBuildingClassTask.h"
 
 ASpectatorPlayerPawn::ASpectatorPlayerPawn(const FObjectInitializer& ObjectInitializer) :
 	Super(ObjectInitializer.SetDefaultSubobjectClass<UPlayerSpectatorPawnMovement>(Super::MovementComponentName))
@@ -15,6 +17,9 @@ ASpectatorPlayerPawn::ASpectatorPlayerPawn(const FObjectInitializer& ObjectIniti
 	bAddDefaultMovementBindings = false;
 	bReplicates = true;
 	NetUpdateFrequency = 10.f;
+
+	static ConstructorHelpers::FObjectFinder<UDataTable>BuildingDataTableFinder(TEXT("/Game/Blueprints/DataTables/DT_BuildingObjectInfo"));
+	if(BuildingDataTableFinder.Succeeded()) BuildingDataTable = BuildingDataTableFinder.Object;
 }
 
 void ASpectatorPlayerPawn::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
@@ -39,4 +44,11 @@ void ASpectatorPlayerPawn::MoveRight(float Val)
 {
 	SpectatorCameraComponent->MoveRight(Val);
 }
+
+void ASpectatorPlayerPawn::BeginPlay()
+{
+	Super::BeginPlay();
+
+}
+
 

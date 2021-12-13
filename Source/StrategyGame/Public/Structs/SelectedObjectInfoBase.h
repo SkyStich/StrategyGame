@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "Engine/DataTable.h"
+#include "Actors/BuilgindActors/BaseBuildingActor.h"
 #include "SelectedObjectInfoBase.generated.h"
 
 USTRUCT(BlueprintType)
@@ -30,6 +31,6 @@ struct FBuildingObjectInfo : public FSelectedObjectInfo
 	GENERATED_BODY()
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "SelectedInfo")
-	TAssetSubclassOf<class ABaseBuildingActor> BuildingClass; 
+	TAssetSubclassOf<ABaseBuildingActor> BuildingClass; 
 };
 

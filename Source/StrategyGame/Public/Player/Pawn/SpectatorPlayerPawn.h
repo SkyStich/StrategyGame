@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/SpectatorPawn.h"
+#include "Engine/DataTable.h"
 #include "SpectatorPlayerPawn.generated.h"
 
 class USpectatorCameraComponent;
@@ -23,6 +24,7 @@ public:
 	ASpectatorPlayerPawn(const FObjectInitializer& ObjectInitializer);
 
 	virtual void SetupPlayerInputComponent(UInputComponent* PlayerInputComponent) override;
+	virtual void BeginPlay() override;
 	
 	USpectatorCameraComponent* GetSpectatorCameraComponent() const { return SpectatorCameraComponent; }
 

@@ -76,6 +76,27 @@ public:
 		}
 		return Widget;
 	}
+
+	template<class T>
+	static TSubclassOf<T> SyncLoadClass(UObject* WorldContext, TAssetSubclassOf<T> Class)
+	{
+		if(Class.IsNull())
+		{
+			FString const InstigatorName = WorldContext ? WorldContext->GetFullName() : "Unknown";
+			UE_LOG(LogTemp, Error, TEXT("Asset Ptr is null --%d"), *InstigatorName);
+			return nullptr;
+		}
+		
+		if(Class.IsValid())
+		{
+			return Class.Get();
+		}
+		
+		FStreamableManager& AssetLoader = USingletonClass::Get().AssetLoader;
+		FSoftObjectPath const ObjectPath = Class.ToSoftObjectPath();
+		Class = AssetLoader.LoadSynchronous<T>(ObjectPath);
+		return Class.Get();
+	}
 };
 
 

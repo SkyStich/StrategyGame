@@ -16,6 +16,7 @@ ASpectatorPlayerController::ASpectatorPlayerController(const FObjectInitializer&
 	PrimaryActorTick.bCanEverTick = true;
 
 	bShowMouseCursor =  true;
+	bIgnoreHighlighted = false;
 	bReplicates = true;
 	NetUpdateFrequency = 1.f;
 
@@ -47,8 +48,6 @@ void ASpectatorPlayerController::Tick(float DeltaSeconds)
 void ASpectatorPlayerController::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
-
-	DOREPLIFETIME_CONDITION(ASpectatorPlayerController, TargetActor, COND_OwnerOnly);
 }
 
 void ASpectatorPlayerController::SetupInputComponent()
@@ -57,7 +56,7 @@ void ASpectatorPlayerController::SetupInputComponent()
 
 	check(InputComponent);
 
-	InputComponent->BindAction("SelectActor", IE_Released, this, &ASpectatorPlayerController::OnSelectActorPressed);
+	InputComponent->BindAction("ActionWithObject", IE_Released, this, &ASpectatorPlayerController::OnSelectActorPressed);
 }
 
 void ASpectatorPlayerController::UpdateRotation(float DeltaTime)
@@ -125,32 +124,31 @@ void ASpectatorPlayerController::SpawnPostProcess()
 void ASpectatorPlayerController::UpdateHighlightedActor()
 {
 	static AActor* HighlightedActor;
-	FHitResult OutHit;
 	
-	ETraceTypeQuery const TraceChannel = UCollisionProfile::Get()->ConvertToTraceType(ECC_GameTraceChannel1);
+	ETraceTypeQuery const TraceChannel = UCollisionProfile::Get()->ConvertToTraceType(bIgnoreHighlighted ? ECC_Camera : ECC_GameTraceChannel1);
 	
-	if(GetHitResultUnderCursorByChannel(TraceChannel, true, OutHit) && OutHit.GetActor())
+	if(GetHitResultUnderCursorByChannel(TraceChannel, true, MousePositionResult) && MousePositionResult.GetActor())
 	{
-		if(OutHit.GetActor()->GetClass()->ImplementsInterface(UHighlightedInterface::StaticClass()))
+		if(MousePositionResult.GetActor()->GetClass()->ImplementsInterface(UHighlightedInterface::StaticClass()))
 		{
 			if(HighlightedActor)
 			{
 				/** return if highlighted actor == current outhit actor */
-				if(HighlightedActor == OutHit.GetActor()) return;
+				if(HighlightedActor == MousePositionResult.GetActor()) return;
 
 				UpdateCustomDepthFromActor(HighlightedActor, false);
 			}
 
 			/** Set hilighted actor */
-			HighlightedActor = OutHit.GetActor();
+			HighlightedActor = MousePositionResult.GetActor();
 			
 			UpdateCustomDepthFromActor(HighlightedActor, true);
-			DebugTraceFromMousePosition(OutHit);
+			DebugTraceFromMousePosition(MousePositionResult);
 			return;
 		}
 	}
 	
-	DebugTraceFromMousePosition(OutHit);
+	DebugTraceFromMousePosition(MousePositionResult);
 	
 	/** if the object is no longer selected, clear the static variable and turn it off custom depth  */
 	if(HighlightedActor)
@@ -170,72 +168,65 @@ void ASpectatorPlayerController::DebugTraceFromMousePosition(const FHitResult& O
 
 void ASpectatorPlayerController::UpdateCustomDepthFromActor(AActor* Actor, bool bState)
 {
-	if(TargetActor == Actor) return;
+	if(TargetActors.Contains(Actor)) return;
 	
 	/** set custom depth for static mesh */
 	TArray<UStaticMeshComponent*> MeshComponents;
 	Actor->GetComponents<UStaticMeshComponent>(MeshComponents);
-	for(auto const ByArray : MeshComponents)
+		
+	for(auto const TempStaticMesh : MeshComponents)
 	{
-		ByArray->SetRenderCustomDepth(bState);
+		TempStaticMesh->SetRenderCustomDepth(bState);
 	}
 
 	/** set custom depth for skeletal mesh */
 	TArray<USkeletalMeshComponent*> SkeletalMeshComponents;
 	Actor->GetComponents<USkeletalMeshComponent>(SkeletalMeshComponents);
-	for(auto const ByArray : SkeletalMeshComponents)
+	for(auto const TempSkeletalMesh : SkeletalMeshComponents)
 	{
-		ByArray->SetRenderCustomDepth(bState);
+		TempSkeletalMesh->SetRenderCustomDepth(bState);
 	}
 }
 
-void ASpectatorPlayerController::SetTargetActor(AActor* NewTarget)
+void ASpectatorPlayerController::AddTargetActor(AActor* NewTarget)
 {
-	if(GetLocalRole() == ROLE_Authority)
+	if(TargetActors.Contains(NewTarget)) return;
+	
+	TargetActors.Add(NewTarget);
+	if(NewTarget)
 	{
-		TargetActor = NewTarget;
-		OnRep_TargetActor();
-	}
-}
-
-void ASpectatorPlayerController::OnRep_TargetActor()
-{
-	if(TargetActor)
-	{
-		IHighlightedInterface::Execute_HighlightedActor(TargetActor, this);
+		IHighlightedInterface::Execute_HighlightedActor(NewTarget, this);
 	}
 	
-	TargetActorUpdated.Broadcast(TargetActor);
+	TargetActorUpdated.Broadcast(NewTarget);
+}
+
+void ASpectatorPlayerController::ClearTargetActors()
+{
+	for(auto ByArray : TargetActors)
+	{
+		TargetActors.Remove(ByArray);
+		UpdateCustomDepthFromActor(ByArray, false);
+	}
 }
 
 void ASpectatorPlayerController::OnSelectActorPressed()
 {
 	FHitResult OutHit;
 	
-	ETraceTypeQuery const TraceChannel = UCollisionProfile::Get()->ConvertToTraceType(ECC_GameTraceChannel1);
+	ETraceTypeQuery const TraceChannel = UCollisionProfile::Get()->ConvertToTraceType(bIgnoreHighlighted ? ECC_Camera : ECC_GameTraceChannel1);
+	
 	
 	if(GetHitResultUnderCursorByChannel(TraceChannel, true, OutHit) && OutHit.GetActor())
 	{
 		if(OutHit.GetActor()->GetClass()->ImplementsInterface(UHighlightedInterface::StaticClass()))
 		{
-			if(!TargetActor || TargetActor != OutHit.GetActor()) Server_SelectedActor(OutHit.GetActor());
-			
-#if UE_EDITOR
-			UKismetSystemLibrary::PrintString(GetWorld(), *OutHit.GetActor()->GetName());
-#endif
+			if(!TargetActors.Contains(OutHit.GetActor()))
+			{
+				if(TargetActors.Num() > 0) ClearTargetActors();
+				
+				AddTargetActor(OutHit.GetActor());
+			}
 		}
 	}
 }
-
-void ASpectatorPlayerController::Server_SelectedActor_Implementation(AActor* SelectedActor)
-{
-	if(SelectedActor->GetClass()->ImplementsInterface(UHighlightedInterface::StaticClass()))
-	{
-		SetTargetActor(SelectedActor);
-#if UE_EDITOR
-		UKismetSystemLibrary::PrintString(GetWorld(), SelectedActor->GetName());
-#endif
-	}
-}
-
-

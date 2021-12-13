@@ -3,11 +3,15 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "Actors/BuilgindActors/BaseBuildingActor.h"
 #include "Kismet/BlueprintFunctionLibrary.h"
 #include "Singleton/SingletonClass.h"
 #include "AsyncLoadLibrary.generated.h"
 
 DECLARE_DYNAMIC_DELEGATE_ThreeParams(FSpawnBuildingComplete, bool, bResult, const FString&, Reference, AActor*, SpawnActor);
+DECLARE_DYNAMIC_DELEGATE_ThreeParams(FAsyncLoadActorInMemoryComplete, bool, bResult, const FString&, Reference, TSubclassOf<AActor>, Actor);
+
+class AsyncLoadInMemoryTask;
 
 UCLASS()
 class STRATEGYGAME_API UAsyncLoadLibrary : public UBlueprintFunctionLibrary
@@ -50,5 +54,25 @@ public:
 			UE_LOG(LogTemp, Error, TEXT("UAsyncLoadLibrary::OnAsyncSpawnBaseActorComplete --Spawn actor complite with fail"));
 		}
 		Callback.Execute(SpawnActor != nullptr, SoftObjectPath.ToString(), SpawnActor);
+	}
+
+	template<class T>
+	static void AsyncLoadObjectInMemory(UObject* WorldContext, TAssetSubclassOf<T> ClassToLoad)
+	{
+		if(ClassToLoad.IsNull())
+		{
+			const FString InstigatorName(WorldContext ? WorldContext->GetFullName() : "Unknown");
+			UE_LOG(LogTemp, Error, TEXT("AsyncLoadObjectInMemory --Class to load is null	%d"), *InstigatorName);
+			return;
+		}
+
+//		if(ClassToLoad.IsValid()) return;
+
+		FStreamableManager& AssetLoader = USingletonClass::Get().AssetLoader;
+		FSoftObjectPath const ObjectPath = ClassToLoad.ToSoftObjectPath();
+		AssetLoader.RequestAsyncLoad(ObjectPath, FStreamableDelegate::CreateLambda([]() -> void
+		{
+			GEngine->AddOnScreenDebugMessage(-1, 2.f, FColor::Green, TEXT("Loaded"));
+		}));
 	}
 };

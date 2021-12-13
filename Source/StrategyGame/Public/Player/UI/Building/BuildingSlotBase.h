@@ -25,7 +25,11 @@ protected:
 
 	virtual FText GetObjectName() const override final { return SlotInfo->DisplayName; }
 	virtual FText GetObjectDescription() const override final { return SlotInfo->Description; }
-	virtual TAssetPtr<UTexture2D> GetAssetIconPtr() const override final { return SlotInfo->Icon; } 
+	virtual TAssetPtr<UTexture2D> GetAssetIconPtr() const override final { return SlotInfo->Icon; }
+	virtual FReply NativeOnMouseButtonDown(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent) override;
+
+	UFUNCTION(BlueprintPure)
+	FBuildingObjectInfo GetObjectInfo() const { return *SlotInfo; }
 	
 private:
 

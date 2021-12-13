@@ -6,10 +6,11 @@
 #include "Blueprint/UserWidget.h"
 #include "Components/UniformGridPanel.h"
 #include "Engine/DataTable.h"
+#include "Structs/SelectedObjectInfoBase.h"
 #include "BuildingGridBase.generated.h"
 
 class UBuildingSlotBase;
-struct FBuildingObjectInfo;
+
 
 UCLASS(Blueprintable, Abstract)
 class STRATEGYGAME_API UBuildingGridBase : public UUserWidget
@@ -17,7 +18,11 @@ class STRATEGYGAME_API UBuildingGridBase : public UUserWidget
 	GENERATED_BODY()
 
 	/** Call when player clicked on building slot */
+	UFUNCTION()
 	void OnBuildingSlotClickedEvent(const FBuildingObjectInfo& SlotClicked);
+	
+	UFUNCTION()
+	void OnLoadBuildingClassInMemoryComplete(bool bResult, const FString& Reference, TSubclassOf<AActor> Building);
 	
 protected:
 

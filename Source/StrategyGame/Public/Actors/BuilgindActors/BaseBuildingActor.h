@@ -3,13 +3,14 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "Structs/SelectedObjectInfoBase.h"
 #include "Player/Interfaces/HighlightedInterface.h"
 #include "Components/BoxComponent.h"
 #include "GameFramework/Actor.h"
 #include "BaseBuildingActor.generated.h"
 
-UCLASS()
+class ASpectatorPlayerController;
+
+UCLASS(Abstract, Blueprintable)
 class STRATEGYGAME_API ABaseBuildingActor : public AActor, public IHighlightedInterface
 {
 	GENERATED_BODY()
@@ -18,14 +19,15 @@ public:
 	// Sets default values for this actor's properties
 	ABaseBuildingActor();
 
-	UFUNCTION(BlueprintPure, Category = "Building|Getting")
-	FName GetRowName() const { return RowName; }
+	/** IHighlightedInterface */
+	virtual void HighlightedActor_Implementation(APlayerController* PlayerController) override;
+
+	virtual void Tick(float DeltaTime) override;
+
+	void SetOwnerController(ASpectatorPlayerController* Controller);
 
 	UFUNCTION(BlueprintPure, Category = "Building|Getting")
-	FSelectedObjectInfo GetSelectedObjectInfo() const { return *SelectedObjectInfo; }
-	
-	UFUNCTION(BlueprintCallable, BlueprintNativeEvent, Category = "Interfaces", meta=(DisplayName="BP_HilighlightInterface"))
-    void HighlightedActor(APlayerController* PlayerController);
+	FName GetRowName() const { return RowName; }
 
 protected:
 
@@ -42,5 +44,6 @@ private:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Info", meta=(AllowPrivateAccess="true"))
 	UStaticMeshComponent* StaticMeshComponent;
 
-	FSelectedObjectInfo* SelectedObjectInfo;
+	UPROPERTY(BlueprintReadOnly, Category = "Owners|PlayerController", meta=(AllowPrivateAccess="true"))
+	ASpectatorPlayerController* OwnerPlayerController;
 };
