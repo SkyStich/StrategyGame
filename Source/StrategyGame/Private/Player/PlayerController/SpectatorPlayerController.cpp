@@ -228,12 +228,13 @@ void ASpectatorPlayerController::OnSelectActorReleased()
 				AddTargetActor(OutHit.GetActor());
 			}
 		}
-	}	
+	}
+	if(bIgnoreHighlighted) OnActionWithObjectPressedEvent.Broadcast();
 }
 
 void ASpectatorPlayerController::OnActionWithObjectPressed()
 {
-	if(bIgnoreHighlighted) OnActionWithObjectPressedEvent.Broadcast();
+
 }
 
 void ASpectatorPlayerController::SpawnBuilding(TSubclassOf<ABaseBuildingActor> BuildingClass)

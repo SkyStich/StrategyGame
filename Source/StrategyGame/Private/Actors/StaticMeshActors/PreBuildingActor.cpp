@@ -7,6 +7,7 @@
 APreBuildingActor::APreBuildingActor()
 {
 	PrimaryActorTick.bCanEverTick = true;
+	bIgnoreSpawnPressed = true;
 
 	RootComponent = CreateDefaultSubobject<USceneComponent>(TEXT("SceneComponent"));
 
@@ -48,6 +49,12 @@ void APreBuildingActor::Tick(float DeltaSeconds)
 
 void APreBuildingActor::OnSpawnBuilding()
 {
+	if(bIgnoreSpawnPressed)
+	{
+		bIgnoreSpawnPressed = false;
+		return;
+	}
+	
 	TArray<AActor*> OverlappedActors;
 	BoxCollision->GetOverlappingActors(OverlappedActors);
 	if(OverlappedActors.Num() <= 0)

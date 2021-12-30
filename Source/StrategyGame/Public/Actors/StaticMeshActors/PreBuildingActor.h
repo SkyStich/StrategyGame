@@ -44,4 +44,9 @@ private:
 
 	UPROPERTY()
 	TSubclassOf<ABaseBuildingActor> BuildingActorClass;
+
+	/** if true ignores one mouse click.
+	 *  it is required so that the object does not create a real object after clicking on the slot
+	 */
+	bool bIgnoreSpawnPressed;
 };

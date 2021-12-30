@@ -14,6 +14,7 @@ ABaseBuildingActor::ABaseBuildingActor()
 
 	BoxCollision = CreateDefaultSubobject<UBoxComponent>(TEXT("BoxComponent"));
 	BoxCollision->SetCollisionResponseToChannel(ECC_Camera, ECR_Ignore);
+	BoxCollision->SetRelativeLocation(FVector(0.f, 0.f, 515.f));
 	RootComponent = BoxCollision;
 	
 	StaticMeshComponent = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("StaticMesh"));
