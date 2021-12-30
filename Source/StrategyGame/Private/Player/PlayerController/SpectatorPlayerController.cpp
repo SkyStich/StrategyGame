@@ -56,7 +56,8 @@ void ASpectatorPlayerController::SetupInputComponent()
 
 	check(InputComponent);
 
-	InputComponent->BindAction("ActionWithObject", IE_Released, this, &ASpectatorPlayerController::OnSelectActorPressed);
+	InputComponent->BindAction("ActionWithObject", IE_Released, this, &ASpectatorPlayerController::OnSelectActorReleased);
+	InputComponent->BindAction("ActionWithObject", IE_Pressed, this, &ASpectatorPlayerController::OnActionWithObjectPressed);
 }
 
 void ASpectatorPlayerController::UpdateRotation(float DeltaTime)
@@ -158,13 +159,13 @@ void ASpectatorPlayerController::UpdateHighlightedActor()
 	}
 }
 
+#if UE_EDITOR
 void ASpectatorPlayerController::DebugTraceFromMousePosition(const FHitResult& OutHit)
 {
-#if UE_EDITOR
 	DrawDebugLine(GetWorld(), OutHit.TraceStart, OutHit.TraceEnd, FColor::Blue, false, 0.f);
 	DrawDebugSphere(GetWorld(), OutHit.ImpactPoint, 72.f, 8.f, FColor::Yellow, false, 0.f);
-#endif
 }
+#endif
 
 void ASpectatorPlayerController::UpdateCustomDepthFromActor(AActor* Actor, bool bState)
 {
@@ -210,12 +211,11 @@ void ASpectatorPlayerController::ClearTargetActors()
 	}
 }
 
-void ASpectatorPlayerController::OnSelectActorPressed()
+void ASpectatorPlayerController::OnSelectActorReleased()
 {
 	FHitResult OutHit;
 	
 	ETraceTypeQuery const TraceChannel = UCollisionProfile::Get()->ConvertToTraceType(bIgnoreHighlighted ? ECC_Camera : ECC_GameTraceChannel1);
-	
 	
 	if(GetHitResultUnderCursorByChannel(TraceChannel, true, OutHit) && OutHit.GetActor())
 	{
@@ -228,5 +228,28 @@ void ASpectatorPlayerController::OnSelectActorPressed()
 				AddTargetActor(OutHit.GetActor());
 			}
 		}
-	}
+	}	
 }
+
+void ASpectatorPlayerController::OnActionWithObjectPressed()
+{
+	if(bIgnoreHighlighted) OnActionWithObjectPressedEvent.Broadcast();
+}
+
+void ASpectatorPlayerController::SpawnBuilding(TSubclassOf<ABaseBuildingActor> BuildingClass)
+{
+	bIgnoreHighlighted = false;
+
+	Server_SpawnBuilding(BuildingClass, GetMousePositionResult().ImpactPoint);
+}
+
+void ASpectatorPlayerController::Server_SpawnBuilding_Implementation(TSubclassOf<ABaseBuildingActor> SpawnClass, const FVector& Location)
+{
+	FActorSpawnParameters Param;
+	Param.Owner = this;
+	Param.Instigator = GetPawnOrSpectator();
+	Param.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+	auto const Building = GetWorld()->SpawnActor<ABaseBuildingActor>(SpawnClass, Location, FRotator::ZeroRotator, Param);
+}
+
+

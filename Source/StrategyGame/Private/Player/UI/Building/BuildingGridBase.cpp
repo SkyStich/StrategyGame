@@ -37,7 +37,8 @@ void UBuildingGridBase::OnBuildingSlotClickedEvent(const FBuildingObjectInfo& Sl
 	if(SpawnClass)
 	{
 		auto const SubobjectMesh = Cast<UStaticMeshComponent>(SpawnClass->GetDefaultSubobjectByName("StaticMesh"));
-		if(SubobjectMesh)
+		auto const SubobjectBox = Cast<UBoxComponent>(SpawnClass->GetDefaultSubobjectByName("BoxComponent"));
+		if(SubobjectMesh && SubobjectBox)
 		{
 			APreBuildingActor* PreBuildingActor = nullptr;
 			FActorSpawnParameters Param;
@@ -45,10 +46,15 @@ void UBuildingGridBase::OnBuildingSlotClickedEvent(const FBuildingObjectInfo& Sl
 			PreBuildingActor = GetWorld()->SpawnActor<APreBuildingActor>(APreBuildingActor::StaticClass(), Param);
 			if(PreBuildingActor)
 			{
-				PreBuildingActor->GetStaticMeshComponent()->SetStaticMesh(SubobjectMesh->GetStaticMesh());
 				auto const PC = Cast<ASpectatorPlayerController>(GetOwningPlayer());
-				PreBuildingActor->SetOwnerController(PC);
 				PC->bIgnoreHighlighted = true;
+				
+				PreBuildingActor->GetStaticMeshComponent()->SetStaticMesh(SubobjectMesh->GetStaticMesh());
+				PreBuildingActor->GetStaticMeshComponent()->SetRelativeScale3D(SubobjectMesh->GetRelativeScale3D());
+				PreBuildingActor->SetBoxExtent(SubobjectBox->GetScaledBoxExtent());
+				PreBuildingActor->SetOwnerController(PC);
+				PreBuildingActor->SetBuildingActor(SpawnClass);
+				
 				UGameplayStatics::FinishSpawningActor(PreBuildingActor, FTransform(FVector(0.f)));
 			}
 		}
@@ -57,7 +63,6 @@ void UBuildingGridBase::OnBuildingSlotClickedEvent(const FBuildingObjectInfo& Sl
 
 void UBuildingGridBase::OnLoadBuildingClassInMemoryComplete(bool bResult, const FString& Reference, TSubclassOf<AActor> Building)
 {
-	
-	
+	GEngine->AddOnScreenDebugMessage(-1, 2.f, FColor::Green, TEXT("Loaded"));	
 }
 

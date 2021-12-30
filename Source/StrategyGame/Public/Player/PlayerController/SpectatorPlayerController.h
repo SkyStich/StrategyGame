@@ -3,6 +3,8 @@
 #pragma once
 
 #include "CoreMinimal.h"
+
+#include "Actors/BuilgindActors/BaseBuildingActor.h"
 #include "GameFramework/PlayerController.h"
 #include "SpectatorPlayerController.generated.h"
 
@@ -10,11 +12,21 @@ class USpectatorCameraComponent;
 class AStrategyGameBaseHUD;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FTargetActorUpdated, AActor*, TargetActor);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(FActionWithObjectPressed);
 
 UCLASS()
 class STRATEGYGAME_API ASpectatorPlayerController : public APlayerController
 {
 	GENERATED_BODY()
+
+	/*
+	* Spawn building actor
+	* 
+	* @param	SpawnClass  Class for spawn
+	* @param	Location	Location for spawn actor
+	*/
+	UFUNCTION(Server, Unreliable)
+	void Server_SpawnBuilding(TSubclassOf<ABaseBuildingActor> SpawnClass, const FVector& Location);
 
 	/** Helper for find spectator camera component from controlled pawn */
 	USpectatorCameraComponent* GetSpectatorCameraComponent();
@@ -30,7 +42,8 @@ class STRATEGYGAME_API ASpectatorPlayerController : public APlayerController
 	void DebugTraceFromMousePosition(const FHitResult& OutHit);
 
 	/** Call on select actor (left mouse button default) */
-	void OnSelectActorPressed();
+	void OnSelectActorReleased();
+	void OnActionWithObjectPressed();
 
 	/** Add new target actor */
 	void AddTargetActor(AActor* NewTarget);
@@ -52,6 +65,8 @@ public:
 	virtual void Tick(float DeltaSeconds) override;
 	virtual void GetLifetimeReplicatedProps(TArray< FLifetimeProperty > & OutLifetimeProps) const override;
 	virtual void SetupInputComponent() override;
+	
+	void SpawnBuilding(TSubclassOf<ABaseBuildingActor> BuildingClass);
 
 	const FHitResult& GetMousePositionResult() const { return MousePositionResult; }
 
@@ -70,6 +85,9 @@ public:
 
 	UPROPERTY(BlueprintAssignable, Category = "Delegate", meta = (AllowPrivateAccess = "true"))
 	FTargetActorUpdated TargetActorUpdated;
+
+	UPROPERTY()
+	FActionWithObjectPressed OnActionWithObjectPressedEvent;
 
 	/** if true, line trace with mouse be ignore all components when can be selected. Live on client */
 	bool bIgnoreHighlighted;

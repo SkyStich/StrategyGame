@@ -3,7 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "Components/StaticMeshComponent.h"
+#include "Actors/BuilgindActors/BaseBuildingActor.h"
 #include "GameFramework/Actor.h"
 #include "Components/BoxComponent.h"
 #include "PreBuildingActor.generated.h"
@@ -15,13 +15,18 @@ class STRATEGYGAME_API APreBuildingActor : public AActor
 {
 	GENERATED_BODY()
 
+	UFUNCTION()
+	void OnSpawnBuilding();
 public:
 
 	APreBuildingActor();
 	
 	virtual void Tick(float DeltaSeconds) override;
+	virtual void BeginPlay() override;
+	void SetBoxExtent(const FVector& Size) const { BoxCollision->SetBoxExtent(Size); }
 
-	void SetOwnerController(ASpectatorPlayerController* Controller) { OwnerPlayerController = Controller; }
+	void SetOwnerController(ASpectatorPlayerController* Controller);
+	void SetBuildingActor(TSubclassOf<ABaseBuildingActor> Class) { BuildingActorClass = Class; }
 
 	UStaticMeshComponent* GetStaticMeshComponent() const { return MeshComponent; }
 	UBoxComponent* GetBoxCollision() const { return BoxCollision; }
@@ -36,4 +41,7 @@ private:
 
 	UPROPERTY()
 	UStaticMeshComponent* MeshComponent;
+
+	UPROPERTY()
+	TSubclassOf<ABaseBuildingActor> BuildingActorClass;
 };

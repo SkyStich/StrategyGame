@@ -66,7 +66,7 @@ public:
 			return;
 		}
 
-//		if(ClassToLoad.IsValid()) return;
+		if(ClassToLoad.IsValid()) return;
 
 		FStreamableManager& AssetLoader = USingletonClass::Get().AssetLoader;
 		FSoftObjectPath const ObjectPath = ClassToLoad.ToSoftObjectPath();

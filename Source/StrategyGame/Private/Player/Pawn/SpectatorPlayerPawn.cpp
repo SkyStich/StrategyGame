@@ -17,9 +17,6 @@ ASpectatorPlayerPawn::ASpectatorPlayerPawn(const FObjectInitializer& ObjectIniti
 	bAddDefaultMovementBindings = false;
 	bReplicates = true;
 	NetUpdateFrequency = 10.f;
-
-	static ConstructorHelpers::FObjectFinder<UDataTable>BuildingDataTableFinder(TEXT("/Game/Blueprints/DataTables/DT_BuildingObjectInfo"));
-	if(BuildingDataTableFinder.Succeeded()) BuildingDataTable = BuildingDataTableFinder.Object;
 }
 
 void ASpectatorPlayerPawn::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
