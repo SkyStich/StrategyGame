@@ -2,6 +2,8 @@
 
 
 #include "Player/PlayerController/SpectatorPlayerController.h"
+
+#include "CollisionDebugDrawingPublic.h"
 #include "Net/UnrealNetwork.h"
 #include "DrawDebugHelpers.h"
 #include "Engine/PostProcessVolume.h"
@@ -28,7 +30,7 @@ void ASpectatorPlayerController::BeginPlay()
 {
 	Super::BeginPlay();
 
-	if(GetLocalRole() != ROLE_Authority)
+	if(GetLocalRole() != ROLE_Authority || GetNetMode() == NM_Standalone)
 	{
 		SetInputMode(FInputModeGameOnly());
 		SpawnPostProcess();
@@ -39,7 +41,7 @@ void ASpectatorPlayerController::Tick(float DeltaSeconds)
 {
 	Super::Tick(DeltaSeconds);
 
-	if(GetLocalRole() != ROLE_Authority)
+	if(GetLocalRole() != ROLE_Authority || GetNetMode() == NM_Standalone || GetNetMode() == NM_ListenServer)
 	{
 		UpdateHighlightedActor();
 	}
@@ -56,8 +58,8 @@ void ASpectatorPlayerController::SetupInputComponent()
 
 	check(InputComponent);
 
-	InputComponent->BindAction("ActionWithObject", IE_Released, this, &ASpectatorPlayerController::OnSelectActorReleased);
 	InputComponent->BindAction("ActionWithObject", IE_Pressed, this, &ASpectatorPlayerController::OnActionWithObjectPressed);
+	InputComponent->BindAction("ActionWithObject", IE_Released, this, &ASpectatorPlayerController::OnSelectActorReleased);
 }
 
 void ASpectatorPlayerController::UpdateRotation(float DeltaTime)
@@ -75,11 +77,20 @@ void ASpectatorPlayerController::UpdateRotation(float DeltaTime)
 	SetControlRotation(ViewRotation);
 }
 
+FVector2D ASpectatorPlayerController::GetMousePositionCustom() const
+{
+	float X = 0.f;
+	float Y = 0.f;
+	GetMousePosition(X, Y);
+	return FVector2D(X, Y);
+}
+
+
 void ASpectatorPlayerController::OnRep_Pawn()
 {
 	Super::OnRep_Pawn();
 
-	if(GetLocalRole() != ROLE_Authority) OnNewPawn.Broadcast(GetPawn());
+	if(GetLocalRole() != ROLE_Authority || GetNetMode() == NM_Standalone || GetNetMode() == NM_ListenServer) OnNewPawn.Broadcast(GetPawn());
 }
 
 USpectatorCameraComponent* ASpectatorPlayerController::GetSpectatorCameraComponent()
@@ -191,11 +202,12 @@ void ASpectatorPlayerController::UpdateCustomDepthFromActor(AActor* Actor, bool 
 
 void ASpectatorPlayerController::AddTargetActor(AActor* NewTarget)
 {
-	if(TargetActors.Contains(NewTarget)) return;
+	if(TargetActors.Contains(NewTarget) || !NewTarget->GetClass()->ImplementsInterface(UHighlightedInterface::StaticClass())) return;
 	
-	TargetActors.Add(NewTarget);
 	if(NewTarget)
 	{
+		UpdateCustomDepthFromActor(NewTarget, true);
+		TargetActors.Add(NewTarget);
 		IHighlightedInterface::Execute_HighlightedActor(NewTarget, this);
 	}
 	
@@ -213,8 +225,11 @@ void ASpectatorPlayerController::ClearTargetActors()
 
 void ASpectatorPlayerController::OnSelectActorReleased()
 {
-	FHitResult OutHit;
+	auto StrategyHUD = GetStrategyGameBaseHUD();
+	StrategyHUD->StartGroupSelectionPosition = FVector2D::ZeroVector;
+	StrategyHUD->SetGroupSelectionActive(false);
 	
+	FHitResult OutHit;
 	ETraceTypeQuery const TraceChannel = UCollisionProfile::Get()->ConvertToTraceType(bIgnoreHighlighted ? ECC_Camera : ECC_GameTraceChannel1);
 	
 	if(GetHitResultUnderCursorByChannel(TraceChannel, true, OutHit) && OutHit.GetActor())
@@ -229,12 +244,18 @@ void ASpectatorPlayerController::OnSelectActorReleased()
 			}
 		}
 	}
-	if(bIgnoreHighlighted) OnActionWithObjectPressedEvent.Broadcast();
+	
+	OnActionWithObjectReleasedEvent.Broadcast();
 }
 
 void ASpectatorPlayerController::OnActionWithObjectPressed()
 {
-
+	ClearTargetActors();
+	
+	auto StrategyHUD = GetStrategyGameBaseHUD();
+	StrategyHUD->RemoveActionObjectGrid();
+	StrategyHUD->SetGroupSelectionActive(true);
+	StrategyHUD->StartGroupSelectionPosition = GetMousePositionCustom();
 }
 
 void ASpectatorPlayerController::SpawnBuilding(TSubclassOf<ABaseBuildingActor> BuildingClass)
@@ -252,5 +273,3 @@ void ASpectatorPlayerController::Server_SpawnBuilding_Implementation(TSubclassOf
 	Param.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
 	auto const Building = GetWorld()->SpawnActor<ABaseBuildingActor>(SpawnClass, Location, FRotator::ZeroRotator, Param);
 }
-
-

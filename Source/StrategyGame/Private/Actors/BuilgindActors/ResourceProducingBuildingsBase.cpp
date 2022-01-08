@@ -3,3 +3,9 @@
 
 #include "Actors/BuilgindActors/ResourceProducingBuildingsBase.h"
 
+void AResourceProducingBuildingsBase::HighlightedActor_Implementation(APlayerController* PlayerController)
+{
+	Super::HighlightedActor_Implementation(PlayerController);
+
+	
+}

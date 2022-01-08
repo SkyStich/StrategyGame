@@ -13,5 +13,8 @@ UCLASS()
 class STRATEGYGAME_API AResourceProducingBuildingsBase : public ABaseBuildingActor
 {
 	GENERATED_BODY()
-	
+
+public:
+
+	virtual void HighlightedActor_Implementation(APlayerController* PlayerController) override;
 };

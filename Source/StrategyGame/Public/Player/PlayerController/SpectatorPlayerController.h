@@ -3,7 +3,6 @@
 #pragma once
 
 #include "CoreMinimal.h"
-
 #include "Actors/BuilgindActors/BaseBuildingActor.h"
 #include "GameFramework/PlayerController.h"
 #include "SpectatorPlayerController.generated.h"
@@ -12,13 +11,13 @@ class USpectatorCameraComponent;
 class AStrategyGameBaseHUD;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FTargetActorUpdated, AActor*, TargetActor);
-DECLARE_DYNAMIC_MULTICAST_DELEGATE(FActionWithObjectPressed);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(FActionWithObjectReleased);
 
 UCLASS()
 class STRATEGYGAME_API ASpectatorPlayerController : public APlayerController
 {
 	GENERATED_BODY()
-
+	
 	/*
 	* Spawn building actor
 	* 
@@ -42,12 +41,16 @@ class STRATEGYGAME_API ASpectatorPlayerController : public APlayerController
 	void DebugTraceFromMousePosition(const FHitResult& OutHit);
 
 	/** Call on select actor (left mouse button default) */
+	UFUNCTION()
 	void OnSelectActorReleased();
+
+	UFUNCTION()
 	void OnActionWithObjectPressed();
 
-	/** Add new target actor */
-	void AddTargetActor(AActor* NewTarget);
 	void ClearTargetActors();
+
+	/** return vector2D with Mouse position  */
+	FVector2D GetMousePositionCustom() const;
 
 protected:
 
@@ -60,15 +63,16 @@ protected:
 public:
 
 	ASpectatorPlayerController(const FObjectInitializer& ObjectInitializer);
-	
 	virtual void UpdateRotation(float DeltaTime) override;
 	virtual void Tick(float DeltaSeconds) override;
 	virtual void GetLifetimeReplicatedProps(TArray< FLifetimeProperty > & OutLifetimeProps) const override;
 	virtual void SetupInputComponent() override;
 	
 	void SpawnBuilding(TSubclassOf<ABaseBuildingActor> BuildingClass);
-
 	const FHitResult& GetMousePositionResult() const { return MousePositionResult; }
+	
+	/** Add new target actor */
+	void AddTargetActor(AActor* NewTarget);
 
 private:
 
@@ -87,7 +91,7 @@ public:
 	FTargetActorUpdated TargetActorUpdated;
 
 	UPROPERTY()
-	FActionWithObjectPressed OnActionWithObjectPressedEvent;
+	FActionWithObjectReleased OnActionWithObjectReleasedEvent;
 
 	/** if true, line trace with mouse be ignore all components when can be selected. Live on client */
 	bool bIgnoreHighlighted;

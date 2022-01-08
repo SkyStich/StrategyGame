@@ -46,4 +46,9 @@ private:
 
 	UPROPERTY(BlueprintReadOnly, Category = "Owners|PlayerController", meta=(AllowPrivateAccess="true"))
 	ASpectatorPlayerController* OwnerPlayerController;
+
+protected:
+	
+	UPROPERTY(EditDefaultsOnly, Category = Info)
+	TAssetSubclassOf<UUserWidget> ActionObjectGrid;
 };

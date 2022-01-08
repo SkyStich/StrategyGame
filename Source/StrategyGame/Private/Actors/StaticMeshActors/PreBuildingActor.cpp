@@ -34,7 +34,7 @@ void APreBuildingActor::BeginPlay()
 void APreBuildingActor::SetOwnerController(ASpectatorPlayerController* Controller)
 {
 	OwnerPlayerController = Controller;
-	OwnerPlayerController->OnActionWithObjectPressedEvent.AddDynamic(this, &APreBuildingActor::OnSpawnBuilding);
+	OwnerPlayerController->OnActionWithObjectReleasedEvent.AddDynamic(this, &APreBuildingActor::OnSpawnBuilding);
 }
 
 void APreBuildingActor::Tick(float DeltaSeconds)

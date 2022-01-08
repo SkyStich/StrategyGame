@@ -2,6 +2,8 @@
 
 
 #include "Actors/BuilgindActors/BaseBuildingActor.h"
+
+#include "Player/HUD/StrategyGameBaseHUD.h"
 #include "Player/PlayerController/SpectatorPlayerController.h"
 // Sets default values
 ABaseBuildingActor::ABaseBuildingActor()
@@ -41,5 +43,5 @@ void ABaseBuildingActor::SetOwnerController(ASpectatorPlayerController* Controll
 
 void ABaseBuildingActor::HighlightedActor_Implementation(APlayerController* PlayerController)
 {
-
+	PlayerController->GetHUD<AStrategyGameBaseHUD>()->CreateActionObjectGrid(ActionObjectGrid);
 }

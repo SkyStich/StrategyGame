@@ -8,7 +8,7 @@
 
 UHighLightedSlotBase::UHighLightedSlotBase(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
 {
-	static ConstructorHelpers::FClassFinder<UUserWidget>HighlightedToolTipFinder(TEXT("/Game/Blueprints/UI/Building/ToolTip/W_HighlightedToolTip"));
+	static ConstructorHelpers::FClassFinder<UUserWidget>HighlightedToolTipFinder(TEXT("/Game/Blueprints/UI/InteractionWidgets/ToolTip/W_HighlightedToolTip"));
 	if(HighlightedToolTipFinder.Succeeded()) HighlightedToolTip = HighlightedToolTipFinder.Class;
 	
 }

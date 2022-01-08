@@ -5,11 +5,12 @@
 #include "CoreMinimal.h"
 #include "GameFramework/HUD.h"
 #include "Blueprint/UserWidget.h"
+#include "Player/PlayerController/SpectatorPlayerController.h"
+
 #include "StrategyGameBaseHUD.generated.h"
 
-/**
- * 
- */
+class UBaseMatchWidget;
+
 UCLASS(BlueprintType)
 class STRATEGYGAME_API AStrategyGameBaseHUD : public AHUD
 {
@@ -19,12 +20,21 @@ public:
 
 	AStrategyGameBaseHUD();
 	
+	void SetGroupSelectionActive(bool const IsActive) { bGroupSelectionActive = IsActive; }
+	void CreateActionObjectGrid(TAssetSubclassOf<UUserWidget> Grid);
+	void RemoveActionObjectGrid();
+
+	
 protected:
 
 	virtual void BeginPlay() override;
+	virtual void DrawHUD() override;
 
-	virtual void CreateBuildingGrid();
-	virtual void RemoveBuildingGrid();
+	virtual void CreateMainWidget();
+	virtual void RemoveMainWidget();
+
+	/** get spectator controller helper */
+	ASpectatorPlayerController* GetSpectatorPlayerController();
 
 	UFUNCTION()
 	virtual void OnNewControlledPawn(APawn* NewPawn);
@@ -32,8 +42,19 @@ protected:
 protected:
 
 	UPROPERTY()
-	TAssetSubclassOf<UUserWidget> BuildingGridClassPtr;
+	TAssetSubclassOf<UBaseMatchWidget> MainWidgetClass;
 
 	UPROPERTY()
-	UUserWidget* BuildingGridWidget;
+	UBaseMatchWidget* MainWidgetWidget;
+
+	UPROPERTY()
+	UUserWidget* ActiveActionGrid;
+
+private:
+
+	bool bGroupSelectionActive;
+
+public:
+	
+	FVector2D StartGroupSelectionPosition;
 };
