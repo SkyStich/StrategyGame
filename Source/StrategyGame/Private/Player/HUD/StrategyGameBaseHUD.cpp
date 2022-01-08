@@ -50,13 +50,10 @@ void AStrategyGameBaseHUD::DrawHUD()
 
 		TArray<AActor*> OutActors;
 		GetActorsInSelectionRectangle(APawn::StaticClass(), StartGroupSelectionPosition, FVector2D(Ox, Oy), OutActors);
-		for(auto ByArray : OutActors)
+		ASpectatorPlayerController* SpectatorController = GetSpectatorPlayerController();
+		if(SpectatorController)
 		{
-			ASpectatorPlayerController* SpectatorController = GetSpectatorPlayerController();
-			if(SpectatorController && ByArray)
-			{
-				SpectatorController->AddTargetActor(ByArray);
-			}
+			SpectatorController->AddTargetActors(OutActors);
 		}
 	}
 }
@@ -109,11 +106,13 @@ void AStrategyGameBaseHUD::CreateActionObjectGrid(TAssetSubclassOf<UUserWidget> 
 {
 	if(!Grid.IsNull())
 	{
+		UUserWidget* TempWidget = USyncLoadLibrary::SyncLoadWidget<UUserWidget>(this, Grid, GetOwningPlayerController());
+
 		if(ActiveActionGrid)
 		{
 			RemoveActionObjectGrid();
 		}
-		ActiveActionGrid = USyncLoadLibrary::SyncLoadWidget<UUserWidget>(this, Grid, GetOwningPlayerController());
+		ActiveActionGrid = TempWidget;
 		ActiveActionGrid->AddToViewport();
 	}
 	UE_LOG(LogClass, Error, TEXT("Action object grid is null --%s"), *GetFullName());

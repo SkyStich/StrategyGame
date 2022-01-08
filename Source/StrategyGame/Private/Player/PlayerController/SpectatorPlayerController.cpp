@@ -214,6 +214,18 @@ void ASpectatorPlayerController::AddTargetActor(AActor* NewTarget)
 	TargetActorUpdated.Broadcast(NewTarget);
 }
 
+void ASpectatorPlayerController::AddTargetActors(TArray<AActor*> NewTargets)
+{
+	ClearTargetActors();
+
+	if(NewTargets.Num() <= 0) return;
+
+	for(auto& ByArray : NewTargets)
+	{
+		AddTargetActor(ByArray);
+	}
+}
+
 void ASpectatorPlayerController::ClearTargetActors()
 {
 	for(auto ByArray : TargetActors)
@@ -226,6 +238,7 @@ void ASpectatorPlayerController::ClearTargetActors()
 void ASpectatorPlayerController::OnSelectActorReleased()
 {
 	auto StrategyHUD = GetStrategyGameBaseHUD();
+	StrategyHUD->RemoveActionObjectGrid();
 	StrategyHUD->StartGroupSelectionPosition = FVector2D::ZeroVector;
 	StrategyHUD->SetGroupSelectionActive(false);
 	
@@ -250,10 +263,7 @@ void ASpectatorPlayerController::OnSelectActorReleased()
 
 void ASpectatorPlayerController::OnActionWithObjectPressed()
 {
-	ClearTargetActors();
-	
 	auto StrategyHUD = GetStrategyGameBaseHUD();
-	StrategyHUD->RemoveActionObjectGrid();
 	StrategyHUD->SetGroupSelectionActive(true);
 	StrategyHUD->StartGroupSelectionPosition = GetMousePositionCustom();
 }

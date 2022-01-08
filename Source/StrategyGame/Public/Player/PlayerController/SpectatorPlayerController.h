@@ -37,8 +37,15 @@ class STRATEGYGAME_API ASpectatorPlayerController : public APlayerController
 	void SpawnPostProcess();
 
 	void UpdateHighlightedActor();
-	void UpdateCustomDepthFromActor(AActor* Actor, bool bState);
 	void DebugTraceFromMousePosition(const FHitResult& OutHit);
+
+	/**
+	 * On or Off custom depth on actor
+	 *
+	 * @param	Actor	Actor for update custom depth
+	 * @param	bState	responsible for turning on or off custom depth on actor
+	 */
+	void UpdateCustomDepthFromActor(AActor* Actor, bool bState);
 
 	/** Call on select actor (left mouse button default) */
 	UFUNCTION()
@@ -68,11 +75,28 @@ public:
 	virtual void GetLifetimeReplicatedProps(TArray< FLifetimeProperty > & OutLifetimeProps) const override;
 	virtual void SetupInputComponent() override;
 	
-	void SpawnBuilding(TSubclassOf<ABaseBuildingActor> BuildingClass);
 	const FHitResult& GetMousePositionResult() const { return MousePositionResult; }
+
+	/**
+	 * start spawn building logic
+	 *
+	 * @param	BuildingClass	Class for spawn
+	 */
+	void SpawnBuilding(TSubclassOf<ABaseBuildingActor> BuildingClass);
 	
-	/** Add new target actor */
+	/**
+	 *Add new target actor
+	 *
+	 * @param	NewTarget	new target for add to target
+	 */
 	void AddTargetActor(AActor* NewTarget);
+
+	/**
+	 * Add new targets array
+	 *
+	 * @param	NewTargets  Add new target array
+	 */
+	void AddTargetActors(TArray<AActor*> NewTargets);
 
 private:
 
