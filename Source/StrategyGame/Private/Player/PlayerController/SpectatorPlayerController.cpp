@@ -238,7 +238,6 @@ void ASpectatorPlayerController::ClearTargetActors()
 void ASpectatorPlayerController::OnSelectActorReleased()
 {
 	auto StrategyHUD = GetStrategyGameBaseHUD();
-	StrategyHUD->RemoveActionObjectGrid();
 	StrategyHUD->StartGroupSelectionPosition = FVector2D::ZeroVector;
 	StrategyHUD->SetGroupSelectionActive(false);
 	
@@ -255,6 +254,15 @@ void ASpectatorPlayerController::OnSelectActorReleased()
 				
 				AddTargetActor(OutHit.GetActor());
 			}
+			
+		}
+	}
+	else
+	{
+		if(!bIgnoreHighlighted)
+		{
+			StrategyHUD->RemoveActionObjectGrid();
+			if(TargetActors.Num() > 0) ClearTargetActors();
 		}
 	}
 	
