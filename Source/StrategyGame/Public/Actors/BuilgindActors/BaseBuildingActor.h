@@ -32,6 +32,7 @@ public:
 protected:
 
 	virtual void BeginPlay() override;
+	ASpectatorPlayerController* GetOwnerController() const { return OwnerPlayerController; }
 
 private:
 

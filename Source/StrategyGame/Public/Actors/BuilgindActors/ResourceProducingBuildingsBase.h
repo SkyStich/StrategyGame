@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "Actors/BuilgindActors/BaseBuildingActor.h"
+#include "Enums/ResourcesData.h"
 #include "ResourceProducingBuildingsBase.generated.h"
 
 /**
@@ -14,7 +15,32 @@ class STRATEGYGAME_API AResourceProducingBuildingsBase : public ABaseBuildingAct
 {
 	GENERATED_BODY()
 
+private:
+
+	void IncreaseResourcesTime(const float Value);
+	void DecreaseResourcesTime(const float Value);
+
+	UFUNCTION()
+	void UpdateResources();
+
 public:
 
+	AResourceProducingBuildingsBase();
+
 	virtual void HighlightedActor_Implementation(APlayerController* PlayerController) override;
+	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
+	virtual void BeginPlay() override;
+
+private:
+	
+	/** Resources which be updated */
+	UPROPERTY(EditDefaultsOnly, Category = "Resources|ResourcesData", meta = (AllowPrivateAccess))
+	TMap<EResourcesType, int32> IncreaseResourcesData;
+
+	/** The period with which the player's resources will be updated (in sec) */
+	UPROPERTY(EditDefaultsOnly, Replicated, Category = "Resources|ResourcesData", meta = (AllowPrivateAccess))
+	int32 UpdateResourcesTime;
+
+	UPROPERTY()
+	FTimerHandle UpdateResourceHandle;
 };

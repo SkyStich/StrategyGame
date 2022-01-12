@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "Actors/BuilgindActors/BaseBuildingActor.h"
+#include "Player/Components/ResourcesActorComponent.h"
 #include "GameFramework/PlayerController.h"
 #include "SpectatorPlayerController.generated.h"
 
@@ -74,8 +75,24 @@ public:
 	virtual void Tick(float DeltaSeconds) override;
 	virtual void GetLifetimeReplicatedProps(TArray< FLifetimeProperty > & OutLifetimeProps) const override;
 	virtual void SetupInputComponent() override;
-	
 	const FHitResult& GetMousePositionResult() const { return MousePositionResult; }
+
+	/**
+	* Add resources value by resources type
+	*
+	* @param	Type	Type resources for add value
+	* @param	Value	resources value for add to array	
+	*/
+	
+	void AddResourcesByType(const EResourcesType Type, const int32 Value);
+
+	/**
+	* Decrease resources value by resources type
+	*
+	* @param	Type	Type resources for add value
+	* @param	Value	resources value for add to array	
+	*/
+	void DecreaseResourcesByType(const EResourcesType Type, const int32 Value);
 
 	/**
 	 * start spawn building logic
@@ -100,6 +117,9 @@ public:
 
 private:
 
+	UPROPERTY(VisibleDefaultsOnly, Category = "Controller|Components", meta=(AllowPrivateAcess = "true"))
+	UResourcesActorComponent* ResourcesActorComponent;
+	
 	UPROPERTY()
 	UMaterialInstance* HighlightedMaterialInstance;
 	

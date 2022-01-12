@@ -28,7 +28,7 @@ ABaseBuildingActor::ABaseBuildingActor()
 void ABaseBuildingActor::BeginPlay()
 {
 	Super::BeginPlay();
-	
+
 }
 
 void ABaseBuildingActor::Tick(float DeltaTime)

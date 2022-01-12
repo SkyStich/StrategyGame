@@ -2,7 +2,6 @@
 
 
 #include "Player/PlayerController/SpectatorPlayerController.h"
-
 #include "CollisionDebugDrawingPublic.h"
 #include "Net/UnrealNetwork.h"
 #include "DrawDebugHelpers.h"
@@ -21,6 +20,8 @@ ASpectatorPlayerController::ASpectatorPlayerController(const FObjectInitializer&
 	bIgnoreHighlighted = false;
 	bReplicates = true;
 	NetUpdateFrequency = 1.f;
+
+	ResourcesActorComponent = CreateDefaultSubobject<UResourcesActorComponent>(TEXT("ResourcesActorComponent"));
 
 	static ConstructorHelpers::FObjectFinder<UMaterialInstance> HighlightedInstanceFinder(TEXT("/Game/Assets/SelectingObject/Materials/PP_Outliner_Inst"));
 	if(HighlightedInstanceFinder.Succeeded()) HighlightedMaterialInstance = HighlightedInstanceFinder.Object;
@@ -290,4 +291,27 @@ void ASpectatorPlayerController::Server_SpawnBuilding_Implementation(TSubclassOf
 	Param.Instigator = GetPawnOrSpectator();
 	Param.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
 	auto const Building = GetWorld()->SpawnActor<ABaseBuildingActor>(SpawnClass, Location, FRotator::ZeroRotator, Param);
+
+	if(Building)
+	{
+		Building->SetOwnerController(this);
+	}
+}
+
+void ASpectatorPlayerController::AddResourcesByType(const EResourcesType Type, const int32 Value)
+{
+	if(Value > 0)
+	{
+		ResourcesActorComponent->IncreaseResourcesValue(Type, Value);
+		ForceNetUpdate();
+	}
+}
+
+void ASpectatorPlayerController::DecreaseResourcesByType(const EResourcesType Type, const int32 Value)
+{
+	if(Value < 0)
+	{
+		ResourcesActorComponent->DecreaseResourcesValue(Type, Value);
+		ForceNetUpdate();
+	}
 }
