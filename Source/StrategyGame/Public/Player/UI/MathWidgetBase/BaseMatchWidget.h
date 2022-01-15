@@ -13,5 +13,9 @@ UCLASS()
 class STRATEGYGAME_API UBaseMatchWidget : public UUserWidget
 {
 	GENERATED_BODY()
-	
+
+public:
+
+	UFUNCTION(BlueprintImplementableEvent)
+	void AttachWidgetToLeftBorder(UUserWidget* Widget);
 };

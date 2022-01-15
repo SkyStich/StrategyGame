@@ -83,22 +83,22 @@ void AStrategyGameBaseHUD::OnNewControlledPawn(APawn* NewPawn)
 
 void AStrategyGameBaseHUD::CreateMainWidget()
 {
-	if(!MainWidgetWidget)
+	if(!MainWidget)
 	{
-		MainWidgetWidget = USyncLoadLibrary::SyncLoadWidget<UBaseMatchWidget>(this, MainWidgetClass, GetOwningPlayerController());
-		if(MainWidgetWidget)
+		MainWidget = USyncLoadLibrary::SyncLoadWidget<UBaseMatchWidget>(this, MainWidgetClass, GetOwningPlayerController());
+		if(MainWidget)
 		{
-			MainWidgetWidget->AddToViewport(1);
+			MainWidget->AddToViewport(1);
 		}
 	}
 }
 
 void AStrategyGameBaseHUD::RemoveMainWidget()
 {
-	if(MainWidgetWidget)
+	if(MainWidget)
 	{
-		MainWidgetWidget->RemoveFromParent();
-		MainWidgetWidget = nullptr;
+		MainWidget->RemoveFromParent();
+		MainWidget = nullptr;
 	}
 }
 
@@ -114,6 +114,8 @@ void AStrategyGameBaseHUD::CreateActionObjectGrid(TAssetSubclassOf<UUserWidget> 
 		}
 		ActiveActionGrid = TempWidget;
 		ActiveActionGrid->AddToViewport();
+		if(MainWidget) MainWidget->AttachWidgetToLeftBorder(ActiveActionGrid);
+		return;
 	}
 	UE_LOG(LogClass, Error, TEXT("Action object grid is null --%s"), *GetFullName());
 }

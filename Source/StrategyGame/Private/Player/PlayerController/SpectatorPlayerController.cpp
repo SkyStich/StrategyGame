@@ -5,12 +5,15 @@
 #include "CollisionDebugDrawingPublic.h"
 #include "Net/UnrealNetwork.h"
 #include "DrawDebugHelpers.h"
+#include "AI/Controllers/Base/BaseBuilderAIController.h"
+#include "AI/Pawns/Base/BaseAIPawn.h"
 #include "Engine/PostProcessVolume.h"
 #include "Kismet/GameplayStatics.h"
 #include "Player/Components/SpectatorCameraComponent.h"
 #include "Player/Interfaces/HighlightedInterface.h"
 #include "UObject/ConstructorHelpers.h"
 #include "Player/HUD/StrategyGameBaseHUD.h"
+#include "Player/PlayerStates/StrategyMatchPlayerState.h"
 
 ASpectatorPlayerController::ASpectatorPlayerController(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
 {
@@ -25,6 +28,9 @@ ASpectatorPlayerController::ASpectatorPlayerController(const FObjectInitializer&
 
 	static ConstructorHelpers::FObjectFinder<UMaterialInstance> HighlightedInstanceFinder(TEXT("/Game/Assets/SelectingObject/Materials/PP_Outliner_Inst"));
 	if(HighlightedInstanceFinder.Succeeded()) HighlightedMaterialInstance = HighlightedInstanceFinder.Object;
+
+	static ConstructorHelpers::FClassFinder<ABaseAIPawn> TestFinder(TEXT("/Game/Blueprints/Pawns/Builderes/BP_BuilderTest"));
+	if(TestFinder.Succeeded()) Test = TestFinder.Class;
 }
 
 void ASpectatorPlayerController::BeginPlay()
@@ -35,6 +41,15 @@ void ASpectatorPlayerController::BeginPlay()
 	{
 		SetInputMode(FInputModeGameOnly());
 		SpawnPostProcess();
+
+		//Test
+		FActorSpawnParameters Param;
+		Param.Instigator = GetPawnOrSpectator();
+		Param.Owner = this;
+		Param.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+		auto spawn = GetWorld()->SpawnActor<ABaseAIPawn>(Test, GetFocalLocation(), FRotator::ZeroRotator, Param);
+		spawn->SetTeam(EObjectTeam::TeamA);
+		UGameplayStatics::FinishSpawningActor(spawn, FTransform(GetFocalLocation()));
 	}
 }
 
@@ -255,7 +270,6 @@ void ASpectatorPlayerController::OnSelectActorReleased()
 				
 				AddTargetActor(OutHit.GetActor());
 			}
-			
 		}
 	}
 	else
@@ -315,3 +329,21 @@ void ASpectatorPlayerController::DecreaseResourcesByType(const EResourcesType Ty
 		ForceNetUpdate();
 	}
 }
+
+void ASpectatorPlayerController::OnActionTargetPawn()
+{
+	OnActionTargetActor.Broadcast();
+	if(GetNetMode() != NM_Standalone) Server_ActionTargetPawn();
+}
+
+void ASpectatorPlayerController::Server_ActionTargetPawn_Implementation()
+{
+	OnActionTargetActor.Broadcast();
+}
+
+EObjectTeam ASpectatorPlayerController::FindObjectTeam_Implementation()
+{
+	auto const PS = Cast<AStrategyMatchPlayerState>(PlayerState);
+	return PS ? PS->GetPlayerTeam() : EObjectTeam::None;
+}
+

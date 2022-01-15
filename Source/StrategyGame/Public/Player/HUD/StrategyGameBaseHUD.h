@@ -45,7 +45,7 @@ protected:
 	TAssetSubclassOf<UBaseMatchWidget> MainWidgetClass;
 
 	UPROPERTY()
-	UBaseMatchWidget* MainWidgetWidget;
+	UBaseMatchWidget* MainWidget;
 
 	UPROPERTY()
 	UUserWidget* ActiveActionGrid;

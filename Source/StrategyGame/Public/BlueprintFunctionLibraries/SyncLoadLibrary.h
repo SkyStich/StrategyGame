@@ -18,11 +18,14 @@ class STRATEGYGAME_API USyncLoadLibrary : public UBlueprintFunctionLibrary
 
 public:
 
+	UFUNCTION(BlueprintPure)
+	static UTexture2D* SyncLoadTexture(UObject* WorldContext, TAssetPtr<UTexture2D> Pointer);
+
 	template<class T>
 	UFUNCTION(BlueprintPure, Category = "SyncLoad", meta=(DisplayName="BP_SyncLoadObject"))
 	static T* SyncLoadObject(UObject* WorldContext, TAssetPtr<T> Pointer)
 	{
-		if(Pointer.IsNull())
+		if(Pointer.IsNull())	
 		{
 			FString const InstigatorName = WorldContext ? WorldContext->GetFullName() : "Unknown";
 			UE_LOG(LogTemp, Error, TEXT("Asset Ptr is null --%d"), *InstigatorName);

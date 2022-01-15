@@ -6,6 +6,8 @@
 #include "Actors/BuilgindActors/BaseBuildingActor.h"
 #include "Player/Components/ResourcesActorComponent.h"
 #include "GameFramework/PlayerController.h"
+#include "Interfaces/FindObjectTeamInterface.h"
+
 #include "SpectatorPlayerController.generated.h"
 
 class USpectatorCameraComponent;
@@ -14,8 +16,11 @@ class AStrategyGameBaseHUD;
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FTargetActorUpdated, AActor*, TargetActor);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FActionWithObjectReleased);
 
+/** called when the player gives a command to the controlled pawn (right mouse button by default) */
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(FActionTargetActor);
+
 UCLASS()
-class STRATEGYGAME_API ASpectatorPlayerController : public APlayerController
+class STRATEGYGAME_API ASpectatorPlayerController : public APlayerController, public IFindObjectTeamInterface
 {
 	GENERATED_BODY()
 	
@@ -55,6 +60,12 @@ class STRATEGYGAME_API ASpectatorPlayerController : public APlayerController
 	UFUNCTION()
 	void OnActionWithObjectPressed();
 
+	UFUNCTION()
+	void OnActionTargetPawn();
+
+	UFUNCTION(Server, Unreliable)
+	void Server_ActionTargetPawn();
+
 	void ClearTargetActors();
 
 	/** return vector2D with Mouse position  */
@@ -75,6 +86,7 @@ public:
 	virtual void Tick(float DeltaSeconds) override;
 	virtual void GetLifetimeReplicatedProps(TArray< FLifetimeProperty > & OutLifetimeProps) const override;
 	virtual void SetupInputComponent() override;
+	virtual EObjectTeam FindObjectTeam_Implementation() override;
 	const FHitResult& GetMousePositionResult() const { return MousePositionResult; }
 
 	/**
@@ -134,9 +146,15 @@ public:
 	UPROPERTY(BlueprintAssignable, Category = "Delegate", meta = (AllowPrivateAccess = "true"))
 	FTargetActorUpdated TargetActorUpdated;
 
+	/** called when the player gives a command to the controlled pawn (right mouse button by default) */
+	UPROPERTY()
+	FActionTargetActor OnActionTargetActor;
+
 	UPROPERTY()
 	FActionWithObjectReleased OnActionWithObjectReleasedEvent;
 
 	/** if true, line trace with mouse be ignore all components when can be selected. Live on client */
 	bool bIgnoreHighlighted;
+
+	TSubclassOf<AActor> Test;
 };
