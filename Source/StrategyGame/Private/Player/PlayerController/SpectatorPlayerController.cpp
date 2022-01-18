@@ -30,9 +30,6 @@ ASpectatorPlayerController::ASpectatorPlayerController(const FObjectInitializer&
 
 	static ConstructorHelpers::FObjectFinder<UMaterialInstance> HighlightedInstanceFinder(TEXT("/Game/Assets/SelectingObject/Materials/PP_Outliner_Inst"));
 	if(HighlightedInstanceFinder.Succeeded()) HighlightedMaterialInstance = HighlightedInstanceFinder.Object;
-
-	static ConstructorHelpers::FClassFinder<ABaseAIPawn> TestFinder(TEXT("/Game/Blueprints/Pawns/Builderes/BP_BuilderTest"));
-	if(TestFinder.Succeeded()) Test = TestFinder.Class;
 }
 
 void ASpectatorPlayerController::BeginPlay()
@@ -44,25 +41,6 @@ void ASpectatorPlayerController::BeginPlay()
 		SetInputMode(FInputModeGameOnly());
 		SpawnPostProcess();
 	}
-	auto f = [&]() -> void
-	{
-		if (GetLocalRole() == ROLE_Authority)
-		{
-			//Test
-			FActorSpawnParameters Param;
-			Param.Instigator = GetPawnOrSpectator();
-			Param.Owner = this;
-			Param.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
-			auto spawn = GetWorld()->SpawnActor<ABaseAIPawn>(Test, GetFocalLocation(), FRotator::ZeroRotator, Param);
-			spawn->SetTeam(EObjectTeam::TeamA);
-			UGameplayStatics::FinishSpawningActor(spawn, FTransform(GetFocalLocation()));
-			ForceNetUpdate();
-		}
-	};
-	FTimerHandle Handle;
-	FTimerDelegate TimerDel;
-	TimerDel.BindLambda(f);
-	GetWorld()->GetTimerManager().SetTimer(Handle, TimerDel, 1.f, false);
 }
 
 void ASpectatorPlayerController::OnPossess(APawn* InPawn)
@@ -321,18 +299,25 @@ void ASpectatorPlayerController::Server_SingleSelectActor_Implementation(const F
 	ECollisionChannel const TraceChannel = bIgnoreHighlighted ? ECC_Camera : ECC_GameTraceChannel1;
 	if(!GetWorld()->LineTraceSingleByChannel(OutHit, TraceStart, TraceEnd, TraceChannel)) return;
 	
-	if(OutHit.GetActor()->GetClass()->ImplementsInterface(UHighlightedInterface::StaticClass()))
+	if(OutHit.GetActor()->GetClass()->ImplementsInterface(UHighlightedInterface::StaticClass()) && OutHit.GetActor())
 	{
 		if(!TargetActors.Contains(OutHit.GetActor()))
 		{
 			if(TargetActors.Num() > 0)
 			{
 				Server_ClearTargetActors();
-			}
-				
+			}	
 			AddTargetActor(OutHit.GetActor());
 		}
+		return;
 	}
+	Client_ForciblyDisablingSelectedObject();
+}
+
+void ASpectatorPlayerController::Client_ForciblyDisablingSelectedObject_Implementation()
+{
+	auto StrategyHUD = GetStrategyGameBaseHUD();
+	StrategyHUD->RemoveActionObjectGrid();
 }
 
 void ASpectatorPlayerController::ClearTargetAllActorsDepth()

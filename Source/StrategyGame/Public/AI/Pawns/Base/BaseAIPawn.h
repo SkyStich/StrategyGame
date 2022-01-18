@@ -40,6 +40,6 @@ protected:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
 	USkeletalMeshComponent* SkeletalMesh;
 
-	UPROPERTY(Replicated)
+	UPROPERTY(Replicated, EditAnyWhere)
 	EObjectTeam OwnerTeam;
 };

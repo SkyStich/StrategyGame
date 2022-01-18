@@ -70,6 +70,9 @@ class STRATEGYGAME_API ASpectatorPlayerController : public APlayerController, pu
 	UFUNCTION(Server, Unreliable)
 	void Server_MoveTargetPawns();
 
+	UFUNCTION(Client, Unreliable)
+	void Client_ForciblyDisablingSelectedObject();
+
 	/*
 	* Spawn building actor
 	* 
@@ -172,6 +175,4 @@ public:
 
 	/** if true, line trace with mouse be ignore all components when can be selected. Live on client */
 	bool bIgnoreHighlighted;
-
-	TSubclassOf<AActor> Test;
 };
