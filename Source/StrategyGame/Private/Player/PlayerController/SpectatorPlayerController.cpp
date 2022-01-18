@@ -9,6 +9,8 @@
 #include "AI/Pawns/Base/BaseAIPawn.h"
 #include "Engine/PostProcessVolume.h"
 #include "Kismet/GameplayStatics.h"
+#include "Kismet/KismetMaterialLibrary.h"
+#include "Kismet/KismetMathLibrary.h"
 #include "Player/Components/SpectatorCameraComponent.h"
 #include "Player/Interfaces/HighlightedInterface.h"
 #include "UObject/ConstructorHelpers.h"
@@ -41,16 +43,31 @@ void ASpectatorPlayerController::BeginPlay()
 	{
 		SetInputMode(FInputModeGameOnly());
 		SpawnPostProcess();
-
-		//Test
-		FActorSpawnParameters Param;
-		Param.Instigator = GetPawnOrSpectator();
-		Param.Owner = this;
-		Param.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
-		auto spawn = GetWorld()->SpawnActor<ABaseAIPawn>(Test, GetFocalLocation(), FRotator::ZeroRotator, Param);
-		spawn->SetTeam(EObjectTeam::TeamA);
-		UGameplayStatics::FinishSpawningActor(spawn, FTransform(GetFocalLocation()));
 	}
+	auto f = [&]() -> void
+	{
+		if (GetLocalRole() == ROLE_Authority)
+		{
+			//Test
+			FActorSpawnParameters Param;
+			Param.Instigator = GetPawnOrSpectator();
+			Param.Owner = this;
+			Param.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+			auto spawn = GetWorld()->SpawnActor<ABaseAIPawn>(Test, GetFocalLocation(), FRotator::ZeroRotator, Param);
+			spawn->SetTeam(EObjectTeam::TeamA);
+			UGameplayStatics::FinishSpawningActor(spawn, FTransform(GetFocalLocation()));
+			ForceNetUpdate();
+		}
+	};
+	FTimerHandle Handle;
+	FTimerDelegate TimerDel;
+	TimerDel.BindLambda(f);
+	GetWorld()->GetTimerManager().SetTimer(Handle, TimerDel, 1.f, false);
+}
+
+void ASpectatorPlayerController::OnPossess(APawn* InPawn)
+{
+	Super::OnPossess(InPawn);
 }
 
 void ASpectatorPlayerController::Tick(float DeltaSeconds)
@@ -66,6 +83,8 @@ void ASpectatorPlayerController::Tick(float DeltaSeconds)
 void ASpectatorPlayerController::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+
+	DOREPLIFETIME_CONDITION(ASpectatorPlayerController, TargetActors, COND_OwnerOnly);
 }
 
 void ASpectatorPlayerController::SetupInputComponent()
@@ -76,6 +95,8 @@ void ASpectatorPlayerController::SetupInputComponent()
 
 	InputComponent->BindAction("ActionWithObject", IE_Pressed, this, &ASpectatorPlayerController::OnActionWithObjectPressed);
 	InputComponent->BindAction("ActionWithObject", IE_Released, this, &ASpectatorPlayerController::OnSelectActorReleased);
+
+	InputComponent->BindAction("MoveTargetPawn", IE_Pressed, this, &ASpectatorPlayerController::MoveTargetPawnsPressed);
 }
 
 void ASpectatorPlayerController::UpdateRotation(float DeltaTime)
@@ -100,7 +121,6 @@ FVector2D ASpectatorPlayerController::GetMousePositionCustom() const
 	GetMousePosition(X, Y);
 	return FVector2D(X, Y);
 }
-
 
 void ASpectatorPlayerController::OnRep_Pawn()
 {
@@ -195,9 +215,7 @@ void ASpectatorPlayerController::DebugTraceFromMousePosition(const FHitResult& O
 #endif
 
 void ASpectatorPlayerController::UpdateCustomDepthFromActor(AActor* Actor, bool bState)
-{
-	if(TargetActors.Contains(Actor)) return;
-	
+{	
 	/** set custom depth for static mesh */
 	TArray<UStaticMeshComponent*> MeshComponents;
 	Actor->GetComponents<UStaticMeshComponent>(MeshComponents);
@@ -218,19 +236,19 @@ void ASpectatorPlayerController::UpdateCustomDepthFromActor(AActor* Actor, bool 
 
 void ASpectatorPlayerController::AddTargetActor(AActor* NewTarget)
 {
+	if(GetLocalRole() != ROLE_Authority) return;
 	if(TargetActors.Contains(NewTarget) || !NewTarget->GetClass()->ImplementsInterface(UHighlightedInterface::StaticClass())) return;
 	
 	if(NewTarget)
 	{
 		UpdateCustomDepthFromActor(NewTarget, true);
 		TargetActors.Add(NewTarget);
-		IHighlightedInterface::Execute_HighlightedActor(NewTarget, this);
 	}
 	
 	TargetActorUpdated.Broadcast(NewTarget);
 }
 
-void ASpectatorPlayerController::AddTargetActors(TArray<AActor*> NewTargets)
+void ASpectatorPlayerController::Server_AddTargetActors_Implementation(const TArray<AActor*>& NewTargets)
 {
 	ClearTargetActors();
 
@@ -244,10 +262,11 @@ void ASpectatorPlayerController::AddTargetActors(TArray<AActor*> NewTargets)
 
 void ASpectatorPlayerController::ClearTargetActors()
 {
+	if(GetLocalRole() != ROLE_Authority) return;
+	
 	for(auto ByArray : TargetActors)
 	{
 		TargetActors.Remove(ByArray);
-		UpdateCustomDepthFromActor(ByArray, false);
 	}
 }
 
@@ -256,6 +275,7 @@ void ASpectatorPlayerController::OnSelectActorReleased()
 	auto StrategyHUD = GetStrategyGameBaseHUD();
 	StrategyHUD->StartGroupSelectionPosition = FVector2D::ZeroVector;
 	StrategyHUD->SetGroupSelectionActive(false);
+	if(GetMousePositionCustom().Equals(StrategyHUD->StartGroupSelectionPosition, 12.f)) StrategyHUD->GroupSelectingReleased();
 	
 	FHitResult OutHit;
 	ETraceTypeQuery const TraceChannel = UCollisionProfile::Get()->ConvertToTraceType(bIgnoreHighlighted ? ECC_Camera : ECC_GameTraceChannel1);
@@ -266,9 +286,12 @@ void ASpectatorPlayerController::OnSelectActorReleased()
 		{
 			if(!TargetActors.Contains(OutHit.GetActor()))
 			{
-				if(TargetActors.Num() > 0) ClearTargetActors();
-				
-				AddTargetActor(OutHit.GetActor());
+				if(OutHit.GetActor()->GetClass()->ImplementsInterface(UHighlightedInterface::StaticClass()))
+				{
+					UpdateCustomDepthFromActor(OutHit.GetActor(), true);
+					IHighlightedInterface::Execute_HighlightedActor(OutHit.GetActor(), this);
+					Server_SingleSelectActor(OutHit.TraceStart, OutHit.TraceEnd);
+				}
 			}
 		}
 	}
@@ -277,11 +300,50 @@ void ASpectatorPlayerController::OnSelectActorReleased()
 		if(!bIgnoreHighlighted)
 		{
 			StrategyHUD->RemoveActionObjectGrid();
-			if(TargetActors.Num() > 0) ClearTargetActors();
+			if(TargetActors.Num() > 0)
+			{
+				ClearTargetAllActorsDepth();
+				Server_ClearTargetActors();
+			}
 		}
 	}
-	
 	OnActionWithObjectReleasedEvent.Broadcast();
+}
+
+void ASpectatorPlayerController::Server_ClearTargetActors_Implementation()
+{
+	ClearTargetActors();
+}
+
+void ASpectatorPlayerController::Server_SingleSelectActor_Implementation(const FVector& TraceStart, const FVector& TraceEnd)
+{
+	FHitResult OutHit;
+	ECollisionChannel const TraceChannel = bIgnoreHighlighted ? ECC_Camera : ECC_GameTraceChannel1;
+	if(!GetWorld()->LineTraceSingleByChannel(OutHit, TraceStart, TraceEnd, TraceChannel)) return;
+	
+	if(OutHit.GetActor()->GetClass()->ImplementsInterface(UHighlightedInterface::StaticClass()))
+	{
+		if(!TargetActors.Contains(OutHit.GetActor()))
+		{
+			if(TargetActors.Num() > 0)
+			{
+				Server_ClearTargetActors();
+			}
+				
+			AddTargetActor(OutHit.GetActor());
+		}
+	}
+}
+
+void ASpectatorPlayerController::ClearTargetAllActorsDepth()
+{
+	if(TargetActors.Num() > 0)
+	{
+		for(const auto& ByArray : TargetActors)
+		{
+			UpdateCustomDepthFromActor(ByArray, false);
+		}
+	}
 }
 
 void ASpectatorPlayerController::OnActionWithObjectPressed()
@@ -347,3 +409,39 @@ EObjectTeam ASpectatorPlayerController::FindObjectTeam_Implementation()
 	return PS ? PS->GetPlayerTeam() : EObjectTeam::None;
 }
 
+void ASpectatorPlayerController::MoveTargetPawnsPressed()
+{
+	if(TargetActors.Num() <= 0) return;
+
+	if(GetNetMode() != NM_Standalone)
+	{
+		/** check on team */
+		for(const auto& ByArray : TargetActors)
+		{
+			if(!ByArray->GetClass()->ImplementsInterface(UFindObjectTeamInterface::StaticClass())) return;
+			if(Execute_FindObjectTeam(ByArray) != FindObjectTeam_Implementation()) return;
+		}
+	}
+	
+	Server_MoveTargetPawns();
+}
+
+void ASpectatorPlayerController::Server_MoveTargetPawns_Implementation()
+{
+	if(TargetActors.Num() <= 0) return;
+
+	/** check on team */
+	for(const auto& ByArray : TargetActors)
+	{
+		if(!ByArray->GetClass()->ImplementsInterface(UFindObjectTeamInterface::StaticClass())) return;
+		if(Execute_FindObjectTeam(ByArray) != FindObjectTeam_Implementation()) return;
+	}
+
+	for(const auto& ByArray : TargetActors)
+	{
+		if(ByArray->GetClass()->ImplementsInterface(UGiveOrderToTargetPawns::StaticClass()))
+		{
+			IGiveOrderToTargetPawns::Execute_GiveOrderToTargetPawn(ByArray);
+		}
+	}
+}

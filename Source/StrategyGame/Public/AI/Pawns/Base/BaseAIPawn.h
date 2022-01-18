@@ -6,11 +6,12 @@
 #include "Enums/TeamData.h"
 #include "Components/CapsuleComponent.h"
 #include "GameFramework/Pawn.h"
+#include "Interfaces/GiveOrderToTargetPawns.h"
 #include "Player/Interfaces/HighlightedInterface.h"
 #include "BaseAIPawn.generated.h"
 
 UCLASS()
-class STRATEGYGAME_API ABaseAIPawn : public APawn, public IHighlightedInterface
+class STRATEGYGAME_API ABaseAIPawn : public APawn, public IHighlightedInterface, public IGiveOrderToTargetPawns
 {
 	GENERATED_BODY()
 
@@ -19,6 +20,7 @@ public:
 	ABaseAIPawn();
 
 	virtual void HighlightedActor_Implementation(APlayerController* PlayerController) override;
+	virtual void GiveOrderToTargetPawn_Implementation() override;
 	void SetTeam(EObjectTeam Team)  { OwnerTeam = Team; }
 
 protected:
@@ -29,7 +31,6 @@ private:
 
 	UPROPERTY(EditDefaultsOnly, Category = Info)
 	TAssetSubclassOf<UUserWidget> ActionObjectGrid;
-
 
 protected:
 	

@@ -18,6 +18,8 @@ public:
 	ABaseAIController();
 
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
+
+	virtual void MoveToGiveOrder();
 	
 protected:
 
@@ -28,6 +30,7 @@ protected:
 
 	UFUNCTION()
 	virtual void OnComponentEndOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex);
+
 protected:
 
 	UPROPERTY(BlueprintReadOnly, Replicated)

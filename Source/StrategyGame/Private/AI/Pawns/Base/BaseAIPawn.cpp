@@ -36,8 +36,17 @@ void ABaseAIPawn::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifet
 	DOREPLIFETIME(ABaseAIPawn, OwnerTeam);
 }
 
-
 void ABaseAIPawn::HighlightedActor_Implementation(APlayerController* PlayerController)
 {
-	PlayerController->GetHUD<AStrategyGameBaseHUD>()->CreateActionObjectGrid(ActionObjectGrid);
+	if(GetLocalRole() != ROLE_Authority || GetNetMode() == NM_Standalone)
+		PlayerController->GetHUD<AStrategyGameBaseHUD>()->CreateActionObjectGrid(ActionObjectGrid);
+}
+
+void ABaseAIPawn::GiveOrderToTargetPawn_Implementation()
+{
+	auto const AIController = GetController<ABaseAIController>();
+	if(AIController)
+	{
+		AIController->MoveToGiveOrder();
+	}
 }

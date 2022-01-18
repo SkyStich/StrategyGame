@@ -6,6 +6,7 @@
 #include "UObject/ConstructorHelpers.h"
 #include "Blueprint/UserWidget.h"
 #include "BlueprintFunctionLibraries/SyncLoadLibrary.h"
+#include "Player/PlayerStates/StrategyMatchPlayerState.h"
 
 AStrategyGameBaseHUD::AStrategyGameBaseHUD()
 {
@@ -21,6 +22,40 @@ void AStrategyGameBaseHUD::BeginPlay()
 
 	CreateMainWidget();
 	GetOwningPlayerController()->GetOnNewPawnNotifier().AddUObject(this, &AStrategyGameBaseHUD::OnNewControlledPawn);
+}
+
+void AStrategyGameBaseHUD::GroupSelectingReleased()
+{
+	float Ox , Oy;	
+	GetOwningPlayerController()->GetMousePosition(Ox, Oy);
+	
+	TArray<AActor*> OutActors;
+	GetActorsInSelectionRectangle(APawn::StaticClass(), StartGroupSelectionPosition, FVector2D(Ox, Oy), OutActors);
+
+	if(OutActors.Num() <= 0) return;
+	
+	ASpectatorPlayerController* SpectatorController = GetSpectatorPlayerController();
+	if(SpectatorController)
+	{
+		/** find command first item who have team and remove items who have not team */
+		EObjectTeam FirstElementTeam = EObjectTeam::None;
+		for(const auto& ByArray : OutActors)
+		{
+			/** remove item if he not have team */
+			if(!ByArray->GetClass()->ImplementsInterface(UFindObjectTeamInterface::StaticClass()))
+			{
+				OutActors.Remove(ByArray);
+				continue;
+			}
+
+			/** write team first item who have team */
+			if(FirstElementTeam != EObjectTeam::None)
+			{
+				FirstElementTeam = IFindObjectTeamInterface::Execute_FindObjectTeam(ByArray);
+			}
+		}
+		SpectatorController->Server_AddTargetActors(OutActors);
+	}
 }
 
 void AStrategyGameBaseHUD::DrawHUD()
@@ -47,14 +82,6 @@ void AStrategyGameBaseHUD::DrawHUD()
 
 		/** Draw bot line */
 		DrawLine(StartX, Oy, Ox, Oy, FColor::Black, 0.f);
-
-		TArray<AActor*> OutActors;
-		GetActorsInSelectionRectangle(APawn::StaticClass(), StartGroupSelectionPosition, FVector2D(Ox, Oy), OutActors);
-		ASpectatorPlayerController* SpectatorController = GetSpectatorPlayerController();
-		if(SpectatorController)
-		{
-			SpectatorController->AddTargetActors(OutActors);
-		}
 	}
 }
 

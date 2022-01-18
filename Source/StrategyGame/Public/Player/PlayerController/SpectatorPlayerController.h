@@ -23,15 +23,7 @@ UCLASS()
 class STRATEGYGAME_API ASpectatorPlayerController : public APlayerController, public IFindObjectTeamInterface
 {
 	GENERATED_BODY()
-	
-	/*
-	* Spawn building actor
-	* 
-	* @param	SpawnClass  Class for spawn
-	* @param	Location	Location for spawn actor
-	*/
-	UFUNCTION(Server, Unreliable)
-	void Server_SpawnBuilding(TSubclassOf<ABaseBuildingActor> SpawnClass, const FVector& Location);
+
 
 	/** Helper for find spectator camera component from controlled pawn */
 	USpectatorCameraComponent* GetSpectatorCameraComponent();
@@ -53,6 +45,12 @@ class STRATEGYGAME_API ASpectatorPlayerController : public APlayerController, pu
 	 */
 	void UpdateCustomDepthFromActor(AActor* Actor, bool bState);
 
+	/** Clear Target actor array and update custom depth */
+	void ClearTargetActors();
+
+	/** return vector2D with Mouse position  */
+	FVector2D GetMousePositionCustom() const;
+
 	/** Call on select actor (left mouse button default) */
 	UFUNCTION()
 	void OnSelectActorReleased();
@@ -63,13 +61,23 @@ class STRATEGYGAME_API ASpectatorPlayerController : public APlayerController, pu
 	UFUNCTION()
 	void OnActionTargetPawn();
 
+	UFUNCTION()
+	void MoveTargetPawnsPressed();
+
 	UFUNCTION(Server, Unreliable)
 	void Server_ActionTargetPawn();
 
-	void ClearTargetActors();
+	UFUNCTION(Server, Unreliable)
+	void Server_MoveTargetPawns();
 
-	/** return vector2D with Mouse position  */
-	FVector2D GetMousePositionCustom() const;
+	/*
+	* Spawn building actor
+	* 
+	* @param	SpawnClass  Class for spawn
+	* @param	Location	Location for spawn actor
+	*/
+	UFUNCTION(Server, Unreliable)
+    void Server_SpawnBuilding(TSubclassOf<ABaseBuildingActor> SpawnClass, const FVector& Location);
 
 protected:
 
@@ -78,7 +86,7 @@ protected:
 
 	virtual void BeginPlay() override;
 	virtual void OnRep_Pawn() override;
-
+	virtual void OnPossess(APawn* InPawn) override;
 public:
 
 	ASpectatorPlayerController(const FObjectInitializer& ObjectInitializer);
@@ -125,8 +133,17 @@ public:
 	 *
 	 * @param	NewTargets  Add new target array
 	 */
-	void AddTargetActors(TArray<AActor*> NewTargets);
+	UFUNCTION(Server, Reliable)
+	void Server_AddTargetActors(const TArray<AActor*>& NewTargets);
 
+	UFUNCTION(Server, Reliable)
+	void Server_SingleSelectActor(const FVector& TraceStart, const FVector& TraceEnd);
+
+	UFUNCTION(Server, Reliable)
+	void Server_ClearTargetActors();
+
+	void ClearTargetAllActorsDepth();
+	
 private:
 
 	UPROPERTY(VisibleDefaultsOnly, Category = "Controller|Components", meta=(AllowPrivateAcess = "true"))
@@ -135,7 +152,7 @@ private:
 	UPROPERTY()
 	UMaterialInstance* HighlightedMaterialInstance;
 	
-	UPROPERTY()
+	UPROPERTY(Replicated)
 	TArray<AActor*> TargetActors;
 	
 	/** Mouse hit result with line trace from mouse position. Valid on owning client */
@@ -143,7 +160,7 @@ private:
 
 public:
 
-	UPROPERTY(BlueprintAssignable, Category = "Delegate", meta = (AllowPrivateAccess = "true"))
+	UPROPERTY(BlueprintAssignable, Category = "Delegate")
 	FTargetActorUpdated TargetActorUpdated;
 
 	/** called when the player gives a command to the controlled pawn (right mouse button by default) */

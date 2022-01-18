@@ -10,7 +10,7 @@
 #include "Player/PlayerController/SpectatorPlayerController.h"
 
 void UBuildingGridBase::CreateBuildingSlots(UUniformGridPanel* UniformGridPanel)
- {
+{
 	static const FString ContextString("DT_BuildingObjectInfo");
 	TArray<FBuildingObjectInfo*> DataStructs;
 	BuildingDataTable->GetAllRows<FBuildingObjectInfo>(ContextString, DataStructs);

@@ -23,7 +23,9 @@ public:
 	void SetGroupSelectionActive(bool const IsActive) { bGroupSelectionActive = IsActive; }
 	void CreateActionObjectGrid(TAssetSubclassOf<UUserWidget> Grid);
 	void RemoveActionObjectGrid();
+	void GroupSelectingReleased();
 
+	bool GetGroupSelectionActive() const { return bGroupSelectionActive; } 
 	
 protected:
 

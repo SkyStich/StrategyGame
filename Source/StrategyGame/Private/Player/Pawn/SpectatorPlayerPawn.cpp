@@ -2,7 +2,10 @@
 
 
 #include "Player/Pawn/SpectatorPlayerPawn.h"
+#include "Player/PlayerController/SpectatorPlayerController.h"
+#include "AI/Pawns/Base/BaseAIPawn.h"
 #include "Components/SphereComponent.h"
+#include "Kismet/GameplayStatics.h"
 #include "Player/Components/PlayerSpectatorPawnMovement.h"
 #include "Player/Components/SpectatorCameraComponent.h"
 #include "UObject/ConstructorHelpers.h"
@@ -42,10 +45,14 @@ void ASpectatorPlayerPawn::MoveRight(float Val)
 	SpectatorCameraComponent->MoveRight(Val);
 }
 
+void ASpectatorPlayerPawn::PossessedBy(AController* NewController)
+{
+	Super::PossessedBy(NewController);
+}
+
 void ASpectatorPlayerPawn::BeginPlay()
 {
 	Super::BeginPlay();
-
 }
 
 

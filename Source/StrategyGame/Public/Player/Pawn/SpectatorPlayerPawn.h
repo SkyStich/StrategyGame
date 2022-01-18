@@ -24,6 +24,7 @@ public:
 	ASpectatorPlayerPawn(const FObjectInitializer& ObjectInitializer);
 
 	virtual void SetupPlayerInputComponent(UInputComponent* PlayerInputComponent) override;
+	virtual void PossessedBy(AController* NewController) override;
 	virtual void BeginPlay() override;
 	
 	USpectatorCameraComponent* GetSpectatorCameraComponent() const { return SpectatorCameraComponent; }

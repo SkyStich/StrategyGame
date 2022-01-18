@@ -50,3 +50,8 @@ void ABaseAIController::OnComponentEndOverlap(UPrimitiveComponent* OverlappedCom
 {
 	
 }
+
+void ABaseAIController::MoveToGiveOrder()
+{
+	
+}
