@@ -51,7 +51,10 @@ void ABaseAIController::OnComponentEndOverlap(UPrimitiveComponent* OverlappedCom
 	
 }
 
-void ABaseAIController::MoveToGiveOrder()
+void ABaseAIController::MoveToGiveOrder(const FVector& Location, AActor* NewTargetActor)
 {
-	
+	if(NewTargetActor)
+	{
+		TargetActor = NewTargetActor;
+	}
 }

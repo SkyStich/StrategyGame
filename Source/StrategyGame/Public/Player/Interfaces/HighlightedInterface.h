@@ -24,5 +24,5 @@ class STRATEGYGAME_API IHighlightedInterface
 public:
 
 	UFUNCTION(BlueprintCallable, BlueprintNativeEvent, Category = "Interfaces", meta=(DisplayName="BP_HilighlightInterface"))
-	void HighlightedActor(APlayerController* PlayerController);
+	void HighlightedActor(class AStrategyGameBaseHUD* PlayerHUD);
 };

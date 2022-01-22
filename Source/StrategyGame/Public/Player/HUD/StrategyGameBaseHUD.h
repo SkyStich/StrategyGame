@@ -6,7 +6,6 @@
 #include "GameFramework/HUD.h"
 #include "Blueprint/UserWidget.h"
 #include "Player/PlayerController/SpectatorPlayerController.h"
-
 #include "StrategyGameBaseHUD.generated.h"
 
 class UBaseMatchWidget;
@@ -14,17 +13,20 @@ class UBaseMatchWidget;
 UCLASS(BlueprintType)
 class STRATEGYGAME_API AStrategyGameBaseHUD : public AHUD
 {
-	GENERATED_BODY()
+	GENERATED_BODY() 
 
 public:
 
 	AStrategyGameBaseHUD();
 	
 	void SetGroupSelectionActive(bool const IsActive) { bGroupSelectionActive = IsActive; }
-	void CreateActionObjectGrid(TAssetSubclassOf<UUserWidget> Grid);
-	void RemoveActionObjectGrid();
-	void GroupSelectingReleased();
 
+	UFUNCTION(BlueprintCallable)
+	void CreateActionGrid(const TArray<class UActionBaseSlot*>& Slots);
+
+	void ClearActionGrid();
+	void RemoveActionGrid();
+	void GroupSelectingReleased();
 	bool GetGroupSelectionActive() const { return bGroupSelectionActive; } 
 	
 protected:
@@ -50,7 +52,10 @@ protected:
 	UBaseMatchWidget* MainWidget;
 
 	UPROPERTY()
-	UUserWidget* ActiveActionGrid;
+	class UBuildingGridBase* ActionGrid;
+
+	UPROPERTY()
+	TAssetSubclassOf<class UBuildingGridBase> ActionGridClass;
 
 private:
 

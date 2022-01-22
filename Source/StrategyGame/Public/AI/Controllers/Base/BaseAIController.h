@@ -19,7 +19,7 @@ public:
 
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 
-	virtual void MoveToGiveOrder();
+	virtual void MoveToGiveOrder(const FVector& Location, AActor* NewTargetActor);
 	
 protected:
 

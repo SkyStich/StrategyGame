@@ -5,6 +5,7 @@
 #include "CollisionDebugDrawingPublic.h"
 #include "Net/UnrealNetwork.h"
 #include "DrawDebugHelpers.h"
+#include "Actors/StaticMeshActors/PreBuildingActor.h"
 #include "AI/Controllers/Base/BaseBuilderAIController.h"
 #include "AI/Pawns/Base/BaseAIPawn.h"
 #include "Engine/PostProcessVolume.h"
@@ -169,12 +170,9 @@ void ASpectatorPlayerController::UpdateHighlightedActor()
 			HighlightedActor = MousePositionResult.GetActor();
 			
 			UpdateCustomDepthFromActor(HighlightedActor, true);
-			DebugTraceFromMousePosition(MousePositionResult);
 			return;
 		}
 	}
-	
-	DebugTraceFromMousePosition(MousePositionResult);
 	
 	/** if the object is no longer selected, clear the static variable and turn it off custom depth  */
 	if(HighlightedActor)
@@ -183,14 +181,6 @@ void ASpectatorPlayerController::UpdateHighlightedActor()
 		HighlightedActor = nullptr;	
 	}
 }
-
-#if UE_EDITOR
-void ASpectatorPlayerController::DebugTraceFromMousePosition(const FHitResult& OutHit)
-{
-	DrawDebugLine(GetWorld(), OutHit.TraceStart, OutHit.TraceEnd, FColor::Blue, false, 0.f);
-	DrawDebugSphere(GetWorld(), OutHit.ImpactPoint, 72.f, 8.f, FColor::Yellow, false, 0.f);
-}
-#endif
 
 void ASpectatorPlayerController::UpdateCustomDepthFromActor(AActor* Actor, bool bState)
 {	
@@ -253,6 +243,7 @@ void ASpectatorPlayerController::OnSelectActorReleased()
 	auto StrategyHUD = GetStrategyGameBaseHUD();
 	StrategyHUD->StartGroupSelectionPosition = FVector2D::ZeroVector;
 	StrategyHUD->SetGroupSelectionActive(false);
+	
 	if(GetMousePositionCustom().Equals(StrategyHUD->StartGroupSelectionPosition, 12.f)) StrategyHUD->GroupSelectingReleased();
 	
 	FHitResult OutHit;
@@ -267,7 +258,7 @@ void ASpectatorPlayerController::OnSelectActorReleased()
 				if(OutHit.GetActor()->GetClass()->ImplementsInterface(UHighlightedInterface::StaticClass()))
 				{
 					UpdateCustomDepthFromActor(OutHit.GetActor(), true);
-					IHighlightedInterface::Execute_HighlightedActor(OutHit.GetActor(), this);
+					IHighlightedInterface::Execute_HighlightedActor(OutHit.GetActor(), GetStrategyGameBaseHUD());
 					Server_SingleSelectActor(OutHit.TraceStart, OutHit.TraceEnd);
 				}
 			}
@@ -277,7 +268,7 @@ void ASpectatorPlayerController::OnSelectActorReleased()
 	{
 		if(!bIgnoreHighlighted)
 		{
-			StrategyHUD->RemoveActionObjectGrid();
+			StrategyHUD->ClearActionGrid();
 			if(TargetActors.Num() > 0)
 			{
 				ClearTargetAllActorsDepth();
@@ -299,7 +290,7 @@ void ASpectatorPlayerController::Server_SingleSelectActor_Implementation(const F
 	ECollisionChannel const TraceChannel = bIgnoreHighlighted ? ECC_Camera : ECC_GameTraceChannel1;
 	if(!GetWorld()->LineTraceSingleByChannel(OutHit, TraceStart, TraceEnd, TraceChannel)) return;
 	
-	if(OutHit.GetActor()->GetClass()->ImplementsInterface(UHighlightedInterface::StaticClass()) && OutHit.GetActor())
+	if(OutHit.GetActor() && OutHit.GetActor()->GetClass()->ImplementsInterface(UHighlightedInterface::StaticClass()))
 	{
 		if(!TargetActors.Contains(OutHit.GetActor()))
 		{
@@ -317,7 +308,7 @@ void ASpectatorPlayerController::Server_SingleSelectActor_Implementation(const F
 void ASpectatorPlayerController::Client_ForciblyDisablingSelectedObject_Implementation()
 {
 	auto StrategyHUD = GetStrategyGameBaseHUD();
-	StrategyHUD->RemoveActionObjectGrid();
+	StrategyHUD->ClearActionGrid();
 }
 
 void ASpectatorPlayerController::ClearTargetAllActorsDepth()
@@ -407,11 +398,17 @@ void ASpectatorPlayerController::MoveTargetPawnsPressed()
 			if(Execute_FindObjectTeam(ByArray) != FindObjectTeam_Implementation()) return;
 		}
 	}
+
+	FHitResult OutHit;
+	ETraceTypeQuery const TraceChannel = UCollisionProfile::Get()->ConvertToTraceType(bIgnoreHighlighted ? ECC_Camera : ECC_GameTraceChannel1);
 	
-	Server_MoveTargetPawns();
+	if(GetHitResultUnderCursorByChannel(TraceChannel, true, OutHit) && OutHit.GetActor())
+	{
+		Server_MoveTargetPawns(OutHit.TraceStart, OutHit.TraceEnd);	
+	}
 }
 
-void ASpectatorPlayerController::Server_MoveTargetPawns_Implementation()
+void ASpectatorPlayerController::Server_MoveTargetPawns_Implementation(const FVector& TraceStart, const FVector& TraceEnd)
 {
 	if(TargetActors.Num() <= 0) return;
 
@@ -421,12 +418,41 @@ void ASpectatorPlayerController::Server_MoveTargetPawns_Implementation()
 		if(!ByArray->GetClass()->ImplementsInterface(UFindObjectTeamInterface::StaticClass())) return;
 		if(Execute_FindObjectTeam(ByArray) != FindObjectTeam_Implementation()) return;
 	}
-
+	FHitResult OutHit;
+	ECollisionChannel const TraceChannel = bIgnoreHighlighted ? ECC_Camera : ECC_GameTraceChannel1;
+	GetWorld()->LineTraceSingleByChannel(OutHit, TraceStart, TraceEnd, TraceChannel);
 	for(const auto& ByArray : TargetActors)
 	{
 		if(ByArray->GetClass()->ImplementsInterface(UGiveOrderToTargetPawns::StaticClass()))
 		{
-			IGiveOrderToTargetPawns::Execute_GiveOrderToTargetPawn(ByArray);
+			IGiveOrderToTargetPawns::Execute_GiveOrderToTargetPawn(ByArray, OutHit.Location, OutHit.GetActor());
+		}
+	}
+}
+
+void ASpectatorPlayerController::SpawnPreBuildAction(TSubclassOf<ABaseBuildingActor> BuildActor)
+{
+	if(!BuildActor) return;
+	
+	auto const SubobjectMesh = Cast<UStaticMeshComponent>(BuildActor->GetDefaultSubobjectByName("StaticMesh"));
+	auto const SubobjectBox = Cast<UBoxComponent>(BuildActor->GetDefaultSubobjectByName("BoxComponent"));
+	if(SubobjectMesh && SubobjectBox)
+	{
+		APreBuildingActor* PreBuildingActor = nullptr;
+		FActorSpawnParameters Param;
+		Param.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+		PreBuildingActor = GetWorld()->SpawnActor<APreBuildingActor>(APreBuildingActor::StaticClass(), Param);
+		if(PreBuildingActor)
+		{
+			bIgnoreHighlighted = true;
+				
+			PreBuildingActor->GetStaticMeshComponent()->SetStaticMesh(SubobjectMesh->GetStaticMesh());
+			PreBuildingActor->GetStaticMeshComponent()->SetRelativeScale3D(SubobjectMesh->GetRelativeScale3D());
+			PreBuildingActor->SetBoxExtent(SubobjectBox->GetScaledBoxExtent());
+			PreBuildingActor->SetOwnerController(this);
+			PreBuildingActor->SetBuildingActor(BuildActor);
+				
+			UGameplayStatics::FinishSpawningActor(PreBuildingActor, FTransform(FVector(0.f)));
 		}
 	}
 }

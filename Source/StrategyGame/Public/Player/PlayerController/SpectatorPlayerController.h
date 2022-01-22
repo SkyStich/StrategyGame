@@ -34,8 +34,8 @@ class STRATEGYGAME_API ASpectatorPlayerController : public APlayerController, pu
 	/** Spawn post process on owning client for selection object */
 	void SpawnPostProcess();
 
+	/** update highlight. call on tick */
 	void UpdateHighlightedActor();
-	void DebugTraceFromMousePosition(const FHitResult& OutHit);
 
 	/**
 	 * On or Off custom depth on actor
@@ -68,7 +68,7 @@ class STRATEGYGAME_API ASpectatorPlayerController : public APlayerController, pu
 	void Server_ActionTargetPawn();
 
 	UFUNCTION(Server, Unreliable)
-	void Server_MoveTargetPawns();
+	void Server_MoveTargetPawns(const FVector& TraceStart, const FVector& TraceEnd);
 
 	UFUNCTION(Client, Unreliable)
 	void Client_ForciblyDisablingSelectedObject();
@@ -99,6 +99,12 @@ public:
 	virtual void SetupInputComponent() override;
 	virtual EObjectTeam FindObjectTeam_Implementation() override;
 	const FHitResult& GetMousePositionResult() const { return MousePositionResult; }
+
+	/**
+	 * Spawn pre building actor for find spawn build location
+	 * @param BuildActor Build class for spawn 
+	 */
+	void SpawnPreBuildAction(TSubclassOf<ABaseBuildingActor> BuildActor);
 
 	/**
 	* Add resources value by resources type

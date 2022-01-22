@@ -19,18 +19,13 @@ public:
 	// Sets default values for this pawn's properties
 	ABaseAIPawn();
 
-	virtual void HighlightedActor_Implementation(APlayerController* PlayerController) override;
-	virtual void GiveOrderToTargetPawn_Implementation() override;
+	virtual void GiveOrderToTargetPawn_Implementation(const FVector& LocationToMove, AActor* ActorToMove) override;
 	void SetTeam(EObjectTeam Team)  { OwnerTeam = Team; }
 
 protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
-private:
-
-	UPROPERTY(EditDefaultsOnly, Category = Info)
-	TAssetSubclassOf<UUserWidget> ActionObjectGrid;
 
 protected:
 	

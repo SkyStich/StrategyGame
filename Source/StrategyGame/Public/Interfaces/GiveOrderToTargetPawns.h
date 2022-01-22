@@ -25,8 +25,9 @@ public:
 
 	/** Interface on give order to target pawn
 	 *
-	 *@param Controller	Controller who give order
+	 *@param LocationToMove	Target move location
+	 *@param ActorToMove Target pawn to move
 	 */
 	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "Interface")
-	void GiveOrderToTargetPawn();
+	void GiveOrderToTargetPawn(const FVector& LocationToMove, AActor* ActorToMove);
 };

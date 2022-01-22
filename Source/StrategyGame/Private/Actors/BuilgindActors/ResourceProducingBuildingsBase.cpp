@@ -40,11 +40,6 @@ void AResourceProducingBuildingsBase::UpdateResources()
 	}
 }
 
-void AResourceProducingBuildingsBase::HighlightedActor_Implementation(APlayerController* PlayerController)
-{
-	Super::HighlightedActor_Implementation(PlayerController);
-}
-
 void AResourceProducingBuildingsBase::IncreaseResourcesTime(const float Value)
 {
 	UpdateResourcesTime += Value;

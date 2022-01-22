@@ -27,7 +27,6 @@ public:
 
 	AResourceProducingBuildingsBase();
 
-	virtual void HighlightedActor_Implementation(APlayerController* PlayerController) override;
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 	virtual void BeginPlay() override;
 

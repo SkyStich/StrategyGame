@@ -7,13 +7,18 @@
 #include "Blueprint/UserWidget.h"
 #include "BlueprintFunctionLibraries/SyncLoadLibrary.h"
 #include "Player/PlayerStates/StrategyMatchPlayerState.h"
+#include "Player/UI/Building/BuildingGridBase.h"
+#include "Player/UI/Building/BuildingSlotBase.h"
 
 AStrategyGameBaseHUD::AStrategyGameBaseHUD()
 {
 	bGroupSelectionActive = false;
 	
 	static ConstructorHelpers::FClassFinder<UBaseMatchWidget>MainWidgetClassFinder(TEXT("/Game/Blueprints/UI/MainWidget/W_MainMatchWidget"));
-	if(MainWidgetClassFinder.Succeeded()) MainWidgetClass = MainWidgetClassFinder.Class;	
+	if(MainWidgetClassFinder.Succeeded()) MainWidgetClass = MainWidgetClassFinder.Class;
+
+	static ConstructorHelpers::FClassFinder<UBuildingGridBase>BuildingGridFinder(TEXT("/Game/Blueprints/UI/Actions/Grid/BP_ActionGrid"));
+	if(BuildingGridFinder.Succeeded()) ActionGridClass = BuildingGridFinder.Class;
 }
 
 void AStrategyGameBaseHUD::BeginPlay()
@@ -115,7 +120,7 @@ void AStrategyGameBaseHUD::CreateMainWidget()
 		MainWidget = USyncLoadLibrary::SyncLoadWidget<UBaseMatchWidget>(this, MainWidgetClass, GetOwningPlayerController());
 		if(MainWidget)
 		{
-			MainWidget->AddToViewport(1);
+			MainWidget->AddToViewport(0);
 		}
 	}
 }
@@ -129,29 +134,41 @@ void AStrategyGameBaseHUD::RemoveMainWidget()
 	}
 }
 
-void AStrategyGameBaseHUD::CreateActionObjectGrid(TAssetSubclassOf<UUserWidget> Grid)
+void AStrategyGameBaseHUD::CreateActionGrid(const TArray<UActionBaseSlot*>& Slots)
 {
-	if(!Grid.IsNull())
+	if(Slots.Num() <= 0 || ActionGridClass.IsNull()) return;
+	
+	if(ActionGrid)
 	{
-		UUserWidget* TempWidget = USyncLoadLibrary::SyncLoadWidget<UUserWidget>(this, Grid, GetOwningPlayerController());
-
-		if(ActiveActionGrid)
-		{
-			RemoveActionObjectGrid();
-		}
-		ActiveActionGrid = TempWidget;
-		ActiveActionGrid->AddToViewport();
-		if(MainWidget) MainWidget->AttachWidgetToLeftBorder(ActiveActionGrid);
-		return;
+		ClearActionGrid();
 	}
-	UE_LOG(LogClass, Error, TEXT("Action object grid is null --%s"), *GetFullName());
+	else
+	{
+		ActionGrid = USyncLoadLibrary::SyncLoadWidget<UBuildingGridBase>(this, ActionGridClass, GetOwningPlayerController());
+		ActionGrid->AddToViewport();
+		if(!MainWidget)
+		{
+			CreateMainWidget();
+		}
+		MainWidget->AttachWidgetToLeftBorder(ActionGrid);
+	}
+	ActionGrid->Init(Slots);
+	
 }
 
-void AStrategyGameBaseHUD::RemoveActionObjectGrid()
+void AStrategyGameBaseHUD::ClearActionGrid()
 {
-	if(ActiveActionGrid)
+	if(ActionGrid)
 	{
-		ActiveActionGrid->RemoveFromParent();
-		ActiveActionGrid = nullptr;
+		ActionGrid->ClearGrid();
+	}
+}
+
+void AStrategyGameBaseHUD::RemoveActionGrid()
+{
+	if(ActionGrid)
+	{
+		ActionGrid->RemoveFromParent();
+		ActionGrid = nullptr;
 	}
 }
