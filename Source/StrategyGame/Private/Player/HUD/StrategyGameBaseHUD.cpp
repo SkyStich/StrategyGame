@@ -6,9 +6,9 @@
 #include "UObject/ConstructorHelpers.h"
 #include "Blueprint/UserWidget.h"
 #include "BlueprintFunctionLibraries/SyncLoadLibrary.h"
+#include "AI/Pawns/Base/BaseAIPawn.h"
 #include "Player/PlayerStates/StrategyMatchPlayerState.h"
-#include "Player/UI/Building/BuildingGridBase.h"
-#include "Player/UI/Building/BuildingSlotBase.h"
+#include "Player/UI/ActionGrid/ActionGridBase.h"
 
 AStrategyGameBaseHUD::AStrategyGameBaseHUD()
 {
@@ -17,8 +17,8 @@ AStrategyGameBaseHUD::AStrategyGameBaseHUD()
 	static ConstructorHelpers::FClassFinder<UBaseMatchWidget>MainWidgetClassFinder(TEXT("/Game/Blueprints/UI/MainWidget/W_MainMatchWidget"));
 	if(MainWidgetClassFinder.Succeeded()) MainWidgetClass = MainWidgetClassFinder.Class;
 
-	static ConstructorHelpers::FClassFinder<UBuildingGridBase>BuildingGridFinder(TEXT("/Game/Blueprints/UI/Actions/Grid/BP_ActionGrid"));
-	if(BuildingGridFinder.Succeeded()) ActionGridClass = BuildingGridFinder.Class;
+	static ConstructorHelpers::FClassFinder<UActionGridBase>ActionGridFinder(TEXT("/Game/Blueprints/UI/Actions/Grid/W_ActionGrud"));
+	if(ActionGridFinder.Succeeded()) ActionGridClass = ActionGridFinder.Class;
 }
 
 void AStrategyGameBaseHUD::BeginPlay()
@@ -34,32 +34,23 @@ void AStrategyGameBaseHUD::GroupSelectingReleased()
 	float Ox , Oy;	
 	GetOwningPlayerController()->GetMousePosition(Ox, Oy);
 	
-	TArray<AActor*> OutActors;
-	GetActorsInSelectionRectangle(APawn::StaticClass(), StartGroupSelectionPosition, FVector2D(Ox, Oy), OutActors);
-
-	if(OutActors.Num() <= 0) return;
+	TArray<ABaseAIPawn*> OutActors;
+	if(!GetActorsInSelectionRectangle(StartGroupSelectionPosition, FVector2D(Ox, Oy), OutActors)) return;
 	
 	ASpectatorPlayerController* SpectatorController = GetSpectatorPlayerController();
+	EObjectTeam const OwnerTeam = IFindObjectTeamInterface::Execute_FindObjectTeam(GetOwningPlayerController()); 
 	if(SpectatorController)
 	{
-		/** find command first item who have team and remove items who have not team */
-		EObjectTeam FirstElementTeam = EObjectTeam::None;
-		for(const auto& ByArray : OutActors)
-		{
-			/** remove item if he not have team */
-			if(!ByArray->GetClass()->ImplementsInterface(UFindObjectTeamInterface::StaticClass()))
+		for(auto ByArray : OutActors)
+		{		
+			if(OwnerTeam != IFindObjectTeamInterface::Execute_FindObjectTeam(ByArray))
 			{
 				OutActors.Remove(ByArray);
 				continue;
 			}
-
-			/** write team first item who have team */
-			if(FirstElementTeam != EObjectTeam::None)
-			{
-				FirstElementTeam = IFindObjectTeamInterface::Execute_FindObjectTeam(ByArray);
-			}
+			SpectatorController->UpdateCustomDepthFromActor(ByArray, true);
 		}
-		SpectatorController->Server_AddTargetActors(OutActors);
+		SpectatorController->AddTargetPawns(OutActors);
 	}
 }
 
@@ -74,7 +65,7 @@ void AStrategyGameBaseHUD::DrawHUD()
 		float const StartY = StartGroupSelectionPosition.Y;		
 		GetOwningPlayerController()->GetMousePosition(Ox, Oy);
 
-		if(FVector2D(Ox, Oy) == StartGroupSelectionPosition) return;
+		if(FVector2D(Ox, Oy).Equals(StartGroupSelectionPosition, 25.f)) return;
 		
 		/** draw left line */
 		DrawLine(StartX, StartY, StartX, Oy, FColor::Black, 0.f);
@@ -144,7 +135,7 @@ void AStrategyGameBaseHUD::CreateActionGrid(const TArray<UActionBaseSlot*>& Slot
 	}
 	else
 	{
-		ActionGrid = USyncLoadLibrary::SyncLoadWidget<UBuildingGridBase>(this, ActionGridClass, GetOwningPlayerController());
+		ActionGrid = USyncLoadLibrary::SyncLoadWidget<UActionGridBase>(this, ActionGridClass, GetOwningPlayerController());
 		ActionGrid->AddToViewport();
 		if(!MainWidget)
 		{

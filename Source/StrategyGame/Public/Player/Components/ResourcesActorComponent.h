@@ -21,10 +21,10 @@ struct FResourcesData
 	FResourcesData() : Key(EResourcesType::Food), Value(0) {}
 	FResourcesData(EResourcesType Type, int32 ResourcesValue) : Key(Type), Value(ResourcesValue) {}
 
-	UPROPERTY(BlueprintReadOnly)
+	UPROPERTY(BlueprintReadOnly, EditDefaultsOnly)
 	EResourcesType Key;
 	
-	UPROPERTY(BlueprintReadOnly)
+	UPROPERTY(BlueprintReadOnly, EditDefaultsOnly)
 	int32 Value;
 };
 

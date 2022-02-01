@@ -2,4 +2,4 @@
 
 
 #include "Player/UI/MathWidgetBase/BaseMatchWidget.h"
-
+#include "Player/UI/SpawnProgress/SpawnProgressSlotBase.h"

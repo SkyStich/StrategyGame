@@ -5,6 +5,7 @@
 #include "AI/Controllers/Base/BaseAIController.h"
 #include "Player/HUD/StrategyGameBaseHUD.h"
 #include "Net/UnrealNetwork.h"
+#include "GameFramework/PawnMovementComponent.h"
 
 // Sets default values
 ABaseAIPawn::ABaseAIPawn()
@@ -13,7 +14,7 @@ ABaseAIPawn::ABaseAIPawn()
 	PrimaryActorTick.bCanEverTick = false;
 
 	bReplicates = true;
-	NetUpdateFrequency = 10.f;
+	NetUpdateFrequency = 30.f;
 	AIControllerClass = ABaseAIController::StaticClass();
 
 	CapsuleComponent = CreateDefaultSubobject<UCapsuleComponent>(TEXT("CapuseComponent"));
@@ -21,6 +22,9 @@ ABaseAIPawn::ABaseAIPawn()
 
 	SkeletalMesh = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("SkeletalMeshComponent"));
 	SkeletalMesh->SetupAttachment(RootComponent);
+
+	PawnMovementComponent = CreateDefaultSubobject<UFloatingPawnMovement>(TEXT("PawnMovementComponent"));
+	PawnMovementComponent->MaxSpeed = 600;
 }
 
 // Called when the game starts or when spawned
@@ -38,9 +42,12 @@ void ABaseAIPawn::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifet
 
 void ABaseAIPawn::GiveOrderToTargetPawn_Implementation(const FVector& LocationToMove, AActor* ActorToMove)
 {
-	auto const AIController = GetController<ABaseAIController>();
-	if(AIController)
+	if(GetLocalRole() == ROLE_Authority)
 	{
-		//AIController->MoveToGiveOrder();
+		auto const AIController = GetController<ABaseAIController>();
+		if(AIController)
+		{
+			AIController->MoveToGiveOrder(LocationToMove, ActorToMove);
+		}
 	}
 }

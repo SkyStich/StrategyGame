@@ -5,13 +5,14 @@
 #include "CoreMinimal.h"
 #include "GameFramework/HUD.h"
 #include "Blueprint/UserWidget.h"
+#include "Player/Interfaces/MatchPlayerHUDInterface.h"
 #include "Player/PlayerController/SpectatorPlayerController.h"
 #include "StrategyGameBaseHUD.generated.h"
 
 class UBaseMatchWidget;
 
 UCLASS(BlueprintType)
-class STRATEGYGAME_API AStrategyGameBaseHUD : public AHUD
+class STRATEGYGAME_API AStrategyGameBaseHUD : public AHUD, public IMatchPlayerHUDInterface
 {
 	GENERATED_BODY() 
 
@@ -20,6 +21,7 @@ public:
 	AStrategyGameBaseHUD();
 	
 	void SetGroupSelectionActive(bool const IsActive) { bGroupSelectionActive = IsActive; }
+	virtual UBaseMatchWidget* GetMainMatchWidget_Implementation() override { return MainWidget; }
 
 	UFUNCTION(BlueprintCallable)
 	void CreateActionGrid(const TArray<class UActionBaseSlot*>& Slots);
@@ -27,7 +29,9 @@ public:
 	void ClearActionGrid();
 	void RemoveActionGrid();
 	void GroupSelectingReleased();
-	bool GetGroupSelectionActive() const { return bGroupSelectionActive; } 
+	bool GetGroupSelectionActive() const { return bGroupSelectionActive; }
+
+	UBaseMatchWidget* GetMainWidget() const { return MainWidget; }
 	
 protected:
 
@@ -52,10 +56,10 @@ protected:
 	UBaseMatchWidget* MainWidget;
 
 	UPROPERTY()
-	class UBuildingGridBase* ActionGrid;
+	class UActionGridBase* ActionGrid;
 
 	UPROPERTY()
-	TAssetSubclassOf<class UBuildingGridBase> ActionGridClass;
+	TAssetSubclassOf<class UActionGridBase> ActionGridClass;
 
 private:
 

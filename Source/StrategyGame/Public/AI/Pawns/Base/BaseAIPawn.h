@@ -5,13 +5,15 @@
 #include "CoreMinimal.h"
 #include "Enums/TeamData.h"
 #include "Components/CapsuleComponent.h"
+#include "GameFramework/FloatingPawnMovement.h"
 #include "GameFramework/Pawn.h"
+#include "Interfaces/FindObjectTeamInterface.h"
 #include "Interfaces/GiveOrderToTargetPawns.h"
 #include "Player/Interfaces/HighlightedInterface.h"
 #include "BaseAIPawn.generated.h"
 
 UCLASS()
-class STRATEGYGAME_API ABaseAIPawn : public APawn, public IHighlightedInterface, public IGiveOrderToTargetPawns
+class STRATEGYGAME_API ABaseAIPawn : public APawn, public IHighlightedInterface, public IGiveOrderToTargetPawns, public IFindObjectTeamInterface
 {
 	GENERATED_BODY()
 
@@ -26,6 +28,7 @@ protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
+	virtual EObjectTeam FindObjectTeam_Implementation() override { return OwnerTeam; }
 
 protected:
 	
@@ -34,6 +37,9 @@ protected:
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
 	USkeletalMeshComponent* SkeletalMesh;
+	
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
+	UFloatingPawnMovement* PawnMovementComponent;
 
 	UPROPERTY(Replicated, EditAnyWhere)
 	EObjectTeam OwnerTeam;

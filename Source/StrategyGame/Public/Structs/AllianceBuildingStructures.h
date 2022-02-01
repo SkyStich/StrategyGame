@@ -3,13 +3,9 @@
 #pragma once
 
 #include "CoreMinimal.h"
-
-
-#include "Actors/BuilgindActors/BaseBuildingActor.h"
 #include "AI/Pawns/Base/BaseAIPawn.h"
 #include "Engine/DataTable.h"
 #include "Player/Components/ResourcesActorComponent.h"
-
 #include "AllianceBuildingStructures.generated.h"
 
 USTRUCT(BlueprintType)
@@ -19,12 +15,17 @@ struct FAllianceBaseData : public FTableRowBase
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
 	TArray<FResourcesData> ResourcesNeedToBuy;
+	
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
+	float TimeBeforeSpawn;
 };
 
 USTRUCT(BlueprintType)
-struct FAllianceMainStationData : public FAllianceBaseData
+struct FBaseSpawnPawnData : public FAllianceBaseData
 {
 	GENERATED_BODY()
+	
+	FBaseSpawnPawnData() : BuilderClass(ABaseAIPawn::StaticClass()), Icon(nullptr) {}
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
 	TAssetSubclassOf<ABaseAIPawn> BuilderClass;
@@ -39,7 +40,7 @@ struct FAllianceBuildersData : public FAllianceBaseData
 	GENERATED_BODY()
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
-	TAssetSubclassOf<ABaseBuildingActor> BuildClass;
+	TAssetSubclassOf<class ABaseBuildingActor> BuildClass;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
 	TAssetPtr<UTexture2D> Icon;

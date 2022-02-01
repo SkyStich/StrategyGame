@@ -7,11 +7,11 @@
 #include "Player/Components/ResourcesActorComponent.h"
 #include "GameFramework/PlayerController.h"
 #include "Interfaces/FindObjectTeamInterface.h"
-
 #include "SpectatorPlayerController.generated.h"
 
 class USpectatorCameraComponent;
 class AStrategyGameBaseHUD;
+class AStrategyMatchPlayerState;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FTargetActorUpdated, AActor*, TargetActor);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FActionWithObjectReleased);
@@ -28,6 +28,9 @@ class STRATEGYGAME_API ASpectatorPlayerController : public APlayerController, pu
 	/** Helper for find spectator camera component from controlled pawn */
 	USpectatorCameraComponent* GetSpectatorCameraComponent();
 
+	/** helper for find spectator player state */
+	AStrategyMatchPlayerState* GetStrategyPlayerState() const;
+
 	/** Helper for get Strategy hud base */
 	AStrategyGameBaseHUD* GetStrategyGameBaseHUD() const;
 
@@ -36,14 +39,6 @@ class STRATEGYGAME_API ASpectatorPlayerController : public APlayerController, pu
 
 	/** update highlight. call on tick */
 	void UpdateHighlightedActor();
-
-	/**
-	 * On or Off custom depth on actor
-	 *
-	 * @param	Actor	Actor for update custom depth
-	 * @param	bState	responsible for turning on or off custom depth on actor
-	 */
-	void UpdateCustomDepthFromActor(AActor* Actor, bool bState);
 
 	/** Clear Target actor array and update custom depth */
 	void ClearTargetActors();
@@ -101,6 +96,14 @@ public:
 	const FHitResult& GetMousePositionResult() const { return MousePositionResult; }
 
 	/**
+	* On or Off custom depth on actor
+	*
+	* @param	Actor	Actor for update custom depth
+	* @param	bState	responsible for turning on or off custom depth on actor
+	*/
+	void UpdateCustomDepthFromActor(AActor* Actor, bool bState);
+
+	/**
 	 * Spawn pre building actor for find spawn build location
 	 * @param BuildActor Build class for spawn 
 	 */
@@ -131,19 +134,26 @@ public:
 	void SpawnBuilding(TSubclassOf<ABaseBuildingActor> BuildingClass);
 	
 	/**
-	 *Add new target actor
+	 *Add new single target actor in array
 	 *
 	 * @param	NewTarget	new target for add to target
 	 */
-	void AddTargetActor(AActor* NewTarget);
+	void AddSingleTargetActor(AActor* NewTarget);
 
 	/**
-	 * Add new targets array
+	 * Add new targets pawn with group selecting
 	 *
 	 * @param	NewTargets  Add new target array
 	 */
 	UFUNCTION(Server, Reliable)
-	void Server_AddTargetActors(const TArray<AActor*>& NewTargets);
+	void Server_AddTargetPawns(const TArray<class ABaseAIPawn*>& NewTargets);
+
+	/**
+	* update client logic for add target pawns with group selection and call server notify for add target actors
+	*
+	* @param	NewTargets  Add new target array
+	*/
+	void AddTargetPawns(const TArray<class ABaseAIPawn*>& NewTargets);
 
 	UFUNCTION(Server, Reliable)
 	void Server_SingleSelectActor(const FVector& TraceStart, const FVector& TraceEnd);
@@ -181,4 +191,6 @@ public:
 
 	/** if true, line trace with mouse be ignore all components when can be selected. Live on client */
 	bool bIgnoreHighlighted;
+
+	FName HighlightedTag;
 };

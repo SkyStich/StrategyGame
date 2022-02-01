@@ -4,6 +4,7 @@
 #include "AI/Controllers/Base/BaseAIController.h"
 
 #include "Interfaces/FindObjectTeamInterface.h"
+#include "Kismet/KismetMathLibrary.h"
 #include "Net/UnrealNetwork.h"
 
 ABaseAIController::ABaseAIController()
@@ -57,4 +58,6 @@ void ABaseAIController::MoveToGiveOrder(const FVector& Location, AActor* NewTarg
 	{
 		TargetActor = NewTargetActor;
 	}
+	
+	MoveToLocation(Location, 15);
 }
