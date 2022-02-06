@@ -9,8 +9,8 @@ ABaseAggressivePawn::ABaseAggressivePawn(const FObjectInitializer& ObjectInitial
 {
 	AIControllerClass = ABaseAIAggressiveController::StaticClass();
 	
-	WeaponMesh = ObjectInitializer.CreateDefaultSubobject<USkeletalMeshComponent>(this, TEXT("WeaponSkeletalMesh"));
-	WeaponMesh->SetupAttachment(SkeletalMesh);
+	//WeaponMesh = ObjectInitializer.CreateDefaultSubobject<USkeletalMeshComponent>(this, TEXT("WeaponSkeletalMesh"));
+	//WeaponMesh->SetupAttachment(SkeletalMesh);
 }
 
 void ABaseAggressivePawn::AttackTargetActor(AActor* Target)

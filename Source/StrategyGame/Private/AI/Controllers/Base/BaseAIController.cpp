@@ -1,37 +1,22 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
-
 #include "AI/Controllers/Base/BaseAIController.h"
-
-#include "Interfaces/FindObjectTeamInterface.h"
-#include "Kismet/KismetMathLibrary.h"
+#include "Perception/AIPerceptionComponent.h"
+#include "Perception/AISenseConfig_Sight.h"
 #include "Net/UnrealNetwork.h"
 
 ABaseAIController::ABaseAIController()
 {
+	bAttachToPawn = true;
 	bReplicates = true;
 	NetUpdateFrequency = 1.f;
-	
-	bAttachToPawn = true;
 
-	LookPawnRadius = CreateDefaultSubobject<USphereComponent>(TEXT("LookPawnRadiuse"));
-	LookPawnRadius->SetupAttachment(RootComponent);
-	LookPawnRadius->InitSphereRadius(680);
-	LookPawnRadius->SetCollisionResponseToAllChannels(ECR_Ignore);
-	LookPawnRadius->SetCollisionResponseToChannel(ECC_Pawn, ECR_Overlap);
-	LookPawnRadius->SetCollisionResponseToChannel(ECC_GameTraceChannel1, ECR_Overlap);
-	LookPawnRadius->SetHiddenInGame(false);
+	SenseConfigInit();
 }
 
 void ABaseAIController::BeginPlay()
 {
 	Super::BeginPlay();
-
-	if(GetLocalRole() == ROLE_Authority)
-	{
-		LookPawnRadius->OnComponentBeginOverlap.AddDynamic(this, &ABaseAIController::OnComponentBeginOverlap);
-		LookPawnRadius->OnComponentEndOverlap.AddDynamic(this, &ABaseAIController::OnComponentEndOverlap);
-	}
 }
 
 void ABaseAIController::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
@@ -41,15 +26,29 @@ void ABaseAIController::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& Ou
 	DOREPLIFETIME(ABaseAIController, TargetActor);
 }
 
-
-void ABaseAIController::OnComponentBeginOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
+void ABaseAIController::SenseConfigInit()
 {
-	
+	SetPerceptionComponent(*CreateDefaultSubobject<UAIPerceptionComponent>(TEXT("PerceptionComponent")));
+
+	SightConfig = CreateDefaultSubobject<UAISenseConfig_Sight>(TEXT("ConfigSight"));
+	SightConfig->SightRadius = 2500.f;
+	SightConfig->LoseSightRadius = SightConfig->SightRadius + 850.f;
+	SightConfig->PeripheralVisionAngleDegrees = 85.f;
+	SightConfig->AutoSuccessRangeFromLastSeenLocation = 5.f;
+	SightConfig->DetectionByAffiliation.bDetectEnemies = true;
+	SightConfig->DetectionByAffiliation.bDetectFriendlies = true;
+	SightConfig->DetectionByAffiliation.bDetectNeutrals = true;
+	SightConfig->SetMaxAge(5.f);
+
+	//add sight configuration component to perception component
+	GetPerceptionComponent()->SetDominantSense(*SightConfig->GetSenseImplementation());
+	GetPerceptionComponent()->ConfigureSense(*SightConfig);
+	GetPerceptionComponent()->OnTargetPerceptionUpdated.AddDynamic(this, &ABaseAIController::OnSinglePerceptionUpdated);
 }
 
-void ABaseAIController::OnComponentEndOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex)
+void ABaseAIController::OnSinglePerceptionUpdated(AActor* Actor, FAIStimulus Stimulus)
 {
-	
+		
 }
 
 void ABaseAIController::MoveToGiveOrder(const FVector& Location, AActor* NewTargetActor)
@@ -60,5 +59,5 @@ void ABaseAIController::MoveToGiveOrder(const FVector& Location, AActor* NewTarg
 		MoveToActor(NewTargetActor, 15.f);
 		return;
 	}
-	MoveToLocation(Location, 15);
+	MoveToLocation(Location, 15.f);
 }

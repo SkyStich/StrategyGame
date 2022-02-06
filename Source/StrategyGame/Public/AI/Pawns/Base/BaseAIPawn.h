@@ -4,16 +4,14 @@
 
 #include "CoreMinimal.h"
 #include "Enums/TeamData.h"
-#include "Components/CapsuleComponent.h"
-#include "GameFramework/FloatingPawnMovement.h"
-#include "GameFramework/Pawn.h"
+#include "GameFramework/Character.h"
 #include "Interfaces/FindObjectTeamInterface.h"
 #include "Interfaces/GiveOrderToTargetPawns.h"
 #include "Player/Interfaces/HighlightedInterface.h"
 #include "BaseAIPawn.generated.h"
 
-UCLASS()
-class STRATEGYGAME_API ABaseAIPawn : public APawn, public IHighlightedInterface, public IGiveOrderToTargetPawns, public IFindObjectTeamInterface
+UCLASS(Abstract)
+class STRATEGYGAME_API ABaseAIPawn : public ACharacter, public IHighlightedInterface, public IGiveOrderToTargetPawns, public IFindObjectTeamInterface
 {
 	GENERATED_BODY()
 
@@ -31,15 +29,6 @@ protected:
 	virtual EObjectTeam FindObjectTeam_Implementation() override { return OwnerTeam; }
 
 protected:
-	
-	UPROPERTY(EditAnywhere, BlueprintReadOnly)
-	UCapsuleComponent* PawnCapsuleComponent;
-
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
-	USkeletalMeshComponent* SkeletalMesh;
-	
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
-	UFloatingPawnMovement* PawnMovementComponent;
 
 	UPROPERTY(Replicated, EditAnyWhere)
 	EObjectTeam OwnerTeam;

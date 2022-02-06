@@ -5,28 +5,27 @@
 #include "AI/Controllers/Base/BaseAIController.h"
 #include "Player/HUD/StrategyGameBaseHUD.h"
 #include "Net/UnrealNetwork.h"
-#include "GameFramework/PawnMovementComponent.h"
+#include "GameFramework/CharacterMovementComponent.h"
+#include "Components/CapsuleComponent.h"
 
 // Sets default values
 ABaseAIPawn::ABaseAIPawn()
 {
  	// Set this pawn to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	PrimaryActorTick.bCanEverTick = false;
+	
+	GetCapsuleComponent()->InitCapsuleSize(42.f, 96.0f);
 
 	bReplicates = true;
 	NetUpdateFrequency = 30.f;
 	AIControllerClass = ABaseAIController::StaticClass();
-
-	RootComponent = CreateDefaultSubobject<USceneComponent>(TEXT("RootComponent"));
-
-	PawnCapsuleComponent = CreateDefaultSubobject<UCapsuleComponent>(TEXT("PawnCapsuleComponent"));
-	PawnCapsuleComponent->SetupAttachment(RootComponent);
-
-	SkeletalMesh = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("SkeletalMeshComponent"));
-	SkeletalMesh->SetupAttachment(PawnCapsuleComponent);
-
-	PawnMovementComponent = CreateDefaultSubobject<UFloatingPawnMovement>(TEXT("PawnMovementComponent"));
-	PawnMovementComponent->MaxSpeed = 600;
+	
+	
+	// Configure character movement
+	GetCharacterMovement()->bOrientRotationToMovement = false; // Character moves in the direction of input...	
+	GetCharacterMovement()->RotationRate = FRotator(0.0f, 540.0f, 0.0f); // ...at this rotation rate
+	GetCharacterMovement()->MovementState.bCanJump = false;
+	GetCharacterMovement()->MovementState.bCanCrouch = false;
 
 	bUseControllerRotationYaw = true;
 }

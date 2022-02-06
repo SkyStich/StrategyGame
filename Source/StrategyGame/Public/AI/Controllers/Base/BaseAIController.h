@@ -6,12 +6,17 @@
 #include "AIController.h"
 #include "Enums/TeamData.h"
 #include "Components/SphereComponent.h"
+#include "Perception/AISense_Sight.h"
+#include "Perception/PawnSensingComponent.h"
+
 #include "BaseAIController.generated.h"
 
 UCLASS()
 class STRATEGYGAME_API ABaseAIController : public AAIController
 {
 	GENERATED_BODY()
+
+	void SenseConfigInit();
 
 public:
 
@@ -24,12 +29,7 @@ public:
 protected:
 
 	virtual void BeginPlay() override;
-
-	UFUNCTION()
-	virtual void OnComponentBeginOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult & SweepResult);
-
-	UFUNCTION()
-	virtual void OnComponentEndOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex);
+	virtual void OnSinglePerceptionUpdated(AActor* Actor, FAIStimulus  Stimulus);
 
 protected:
 
@@ -39,5 +39,5 @@ protected:
 private:
 
 	UPROPERTY(EditDefaultsOnly, meta = (AllowPrivateAccess = "true"))
-	USphereComponent* LookPawnRadius;
+	UAISenseConfig_Sight* SightConfig;
 };
