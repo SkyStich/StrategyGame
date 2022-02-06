@@ -260,26 +260,22 @@ void ASpectatorPlayerController::OnSelectActorReleased()
 	
 	if(GetHitResultUnderCursorByChannel(TraceChannel, true, OutHit) && OutHit.GetActor())
 	{
-		if(OutHit.GetActor()->GetClass()->ImplementsInterface(UHighlightedInterface::StaticClass()))
+		auto const TempOutActorClass = OutHit.GetActor()->GetClass();
+		if(TempOutActorClass->ImplementsInterface(UHighlightedInterface::StaticClass()) && TempOutActorClass->ImplementsInterface(UFindObjectTeamInterface::StaticClass()))
 		{
-			if(!TargetActors.Contains(OutHit.GetActor()))
+			if(!TargetActors.Contains(OutHit.GetActor()) && Execute_FindObjectTeam(OutHit.GetActor()) == GetStrategyPlayerState()->GetPlayerTeam())
 			{
-				if(OutHit.GetActor()->GetClass()->ImplementsInterface(UHighlightedInterface::StaticClass()))
+				/** remove custom depth on old target actors */
+				if(TargetActors.Num() > 0)
 				{
-					/** remove custom depth on old target actors */
-					if(TargetActors.Num() > 0)
+					for(const auto& ByArray :  TargetActors)
 					{
-						for(const auto& ByArray :  TargetActors)
-						{
-							ByArray->Tags.Remove(HighlightedTag);
-							UpdateCustomDepthFromActor(ByArray, false);
-						}
+						ByArray->Tags.Remove(HighlightedTag);
+						UpdateCustomDepthFromActor(ByArray, false);
 					}
-					UpdateCustomDepthFromActor(OutHit.GetActor(), true);
-					OutHit.GetActor()->Tags.Add(HighlightedTag);
-					IHighlightedInterface::Execute_HighlightedActor(OutHit.GetActor(), GetStrategyGameBaseHUD());					
-					Server_SingleSelectActor(OutHit.TraceStart, OutHit.TraceEnd);
 				}
+				OutHit.GetActor()->Tags.Add(HighlightedTag);
+				Server_SingleSelectActor(OutHit.TraceStart, OutHit.TraceEnd);
 			}
 		}
 	}
@@ -309,25 +305,30 @@ void ASpectatorPlayerController::Server_SingleSelectActor_Implementation(const F
 	ECollisionChannel const TraceChannel = bIgnoreHighlighted ? ECC_Camera : ECC_GameTraceChannel1;
 	if(!GetWorld()->LineTraceSingleByChannel(OutHit, TraceStart, TraceEnd, TraceChannel)) return;
 	
-	if(OutHit.GetActor() && OutHit.GetActor()->GetClass()->ImplementsInterface(UHighlightedInterface::StaticClass()))
+	if(OutHit.GetActor())
 	{
-		if(!TargetActors.Contains(OutHit.GetActor()))
+		auto const TempOutClass = OutHit.GetActor()->GetClass();
+		if(!TempOutClass->ImplementsInterface(UFindObjectTeamInterface::StaticClass()) || !TempOutClass->ImplementsInterface(UHighlightedInterface::StaticClass()))
+		{
+			return;
+		}
+		
+		if(!TargetActors.Contains(OutHit.GetActor()) && Execute_FindObjectTeam(OutHit.GetActor()) == GetStrategyPlayerState()->GetPlayerTeam())
 		{
 			if(TargetActors.Num() > 0)
 			{
 				ClearTargetActors();
 			}	
 			AddSingleTargetActor(OutHit.GetActor());
+			Client_CallHighlightedOnSelectObject(OutHit.GetActor());
 		}
-		return;
 	}
-	Client_ForciblyDisablingSelectedObject();
 }
 
-void ASpectatorPlayerController::Client_ForciblyDisablingSelectedObject_Implementation()
+void ASpectatorPlayerController::Client_CallHighlightedOnSelectObject_Implementation(AActor* Target)
 {
-	auto StrategyHUD = GetStrategyGameBaseHUD();
-	StrategyHUD->ClearActionGrid();
+	UpdateCustomDepthFromActor(Target, true);
+	IHighlightedInterface::Execute_HighlightedActor(Target, GetStrategyGameBaseHUD());		
 }
 
 void ASpectatorPlayerController::ClearTargetAllActorsDepth()

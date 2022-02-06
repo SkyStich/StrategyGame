@@ -66,7 +66,7 @@ class STRATEGYGAME_API ASpectatorPlayerController : public APlayerController, pu
 	void Server_MoveTargetPawns(const FVector& TraceStart, const FVector& TraceEnd);
 
 	UFUNCTION(Client, Unreliable)
-	void Client_ForciblyDisablingSelectedObject();
+	void Client_CallHighlightedOnSelectObject(AActor* Target);
 
 	/*
 	* Spawn building actor
