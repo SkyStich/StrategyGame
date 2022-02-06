@@ -17,14 +17,18 @@ ABaseAIPawn::ABaseAIPawn()
 	NetUpdateFrequency = 30.f;
 	AIControllerClass = ABaseAIController::StaticClass();
 
-	CapsuleComponent = CreateDefaultSubobject<UCapsuleComponent>(TEXT("CapuseComponent"));
-	RootComponent = CapsuleComponent;
+	RootComponent = CreateDefaultSubobject<USceneComponent>(TEXT("RootComponent"));
+
+	PawnCapsuleComponent = CreateDefaultSubobject<UCapsuleComponent>(TEXT("PawnCapsuleComponent"));
+	PawnCapsuleComponent->SetupAttachment(RootComponent);
 
 	SkeletalMesh = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("SkeletalMeshComponent"));
-	SkeletalMesh->SetupAttachment(RootComponent);
+	SkeletalMesh->SetupAttachment(PawnCapsuleComponent);
 
 	PawnMovementComponent = CreateDefaultSubobject<UFloatingPawnMovement>(TEXT("PawnMovementComponent"));
 	PawnMovementComponent->MaxSpeed = 600;
+
+	bUseControllerRotationYaw = true;
 }
 
 // Called when the game starts or when spawned

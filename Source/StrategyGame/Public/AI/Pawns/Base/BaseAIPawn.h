@@ -32,8 +32,8 @@ protected:
 
 protected:
 	
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
-	UCapsuleComponent* CapsuleComponent;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly)
+	UCapsuleComponent* PawnCapsuleComponent;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
 	USkeletalMeshComponent* SkeletalMesh;

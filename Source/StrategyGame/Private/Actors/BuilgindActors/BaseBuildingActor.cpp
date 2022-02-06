@@ -42,6 +42,15 @@ void ABaseBuildingActor::BeginPlay()
 {
 	Super::BeginPlay();
 
+	if(OwnerPlayerController && GetLocalRole() != ROLE_Authority)
+	{
+		OwnerPlayerController->OnActionWithObjectReleasedEvent.AddDynamic(this, &ABaseBuildingActor::UnHighlighted);
+	}
+}
+
+void ABaseBuildingActor::UnHighlighted()
+{
+	bIsHighlighted = false;
 }
 
 void ABaseBuildingActor::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
@@ -128,7 +137,14 @@ void ABaseBuildingActor::OnSpawnPawn(FName Key, FVector SpawnLocation, TAssetSub
 		BaseSpawnPawn->SetTeam(OwnerPlayerController->FindObjectTeam_Implementation());
 		BaseSpawnPawn->FinishSpawning(FTransform(SpawnLocation));
 	}
+	Client_OnSpawnFinished();
 	RefreshQueue();
+}
+
+void ABaseBuildingActor::Client_OnSpawnFinished_Implementation()
+{
+	GEngine->AddOnScreenDebugMessage(-1, 2.f, FColor::Green, TEXT("SPAWN!!!"));
+	GenerateQueueSlots();
 }
 
 void ABaseBuildingActor::RefreshQueue()
@@ -196,13 +212,10 @@ void ABaseBuildingActor::Server_ClearSpawnPawnHandle_Implementation(const FName&
 
 void ABaseBuildingActor::GenerateQueueSlots()
 {
-	if(QueueOfSpawn.Num() <= 0) return;
 	UBaseMatchWidget* MainWidget = OwnerPlayerController->GetHUD<AStrategyGameBaseHUD>()->GetMainWidget();
 	MainWidget->ClearQueueBorder();
-	int32 Index = -1;
 	for(const auto& ByArray : QueueOfSpawn)
 	{
-		Index++;
 		auto SlotWidget = CreateWidget<USpawnProgressSlotBase>(OwnerPlayerController, SpawnProgressSlot);
 		if(SlotWidget)
 		{
@@ -219,6 +232,7 @@ void ABaseBuildingActor::HighlightedActor_Implementation(AStrategyGameBaseHUD* P
 {
 	if(GetLocalRole() != ROLE_Authority || GetNetMode() == NM_Standalone || GetNetMode() == NM_ListenServer)
 	GenerateQueueSlots();
+	bIsHighlighted = true;
 }
 
 void ABaseBuildingActor::GenerateQueueSlot(const FName& Id, const FBaseSpawnPawnData& SpawnData)

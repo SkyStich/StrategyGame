@@ -57,7 +57,8 @@ void ABaseAIController::MoveToGiveOrder(const FVector& Location, AActor* NewTarg
 	if(NewTargetActor)
 	{
 		TargetActor = NewTargetActor;
+		MoveToActor(NewTargetActor, 15.f);
+		return;
 	}
-	
 	MoveToLocation(Location, 15);
 }

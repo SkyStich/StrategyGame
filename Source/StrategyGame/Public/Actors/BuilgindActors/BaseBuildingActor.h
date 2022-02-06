@@ -42,8 +42,14 @@ class STRATEGYGAME_API ABaseBuildingActor : public AActor, public IHighlightedIn
 	UFUNCTION(Server, Unreliable)
 	void Server_RemoveItemFromQueue(const FName& Id);
 
+	UFUNCTION(Client, Unreliable)
+	void Client_OnSpawnFinished();
+
 	UFUNCTION()
 	void OnSpawnPawn(FName Key, FVector SpawnLocation, TAssetSubclassOf<class ABaseAIPawn> SpawnClass);
+
+	UFUNCTION()
+	void UnHighlighted();
 
 	void RefreshQueue();
 	FVector FindSpawnLocation();
@@ -105,4 +111,7 @@ private:
 	
 	UPROPERTY()
 	FTimerHandle SpawnPawnHandle;
+
+	/** true if build is highlighted */
+	bool bIsHighlighted;
 };
