@@ -21,6 +21,7 @@ public:
 
 	virtual void GiveOrderToTargetPawn_Implementation(const FVector& LocationToMove, AActor* ActorToMove) override;
 	void SetTeam(EObjectTeam Team)  { OwnerTeam = Team; }
+	EObjectTeam GetTeam() const { return OwnerTeam; }
 
 protected:
 	// Called when the game starts or when spawned

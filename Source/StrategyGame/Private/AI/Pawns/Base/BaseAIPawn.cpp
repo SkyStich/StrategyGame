@@ -17,7 +17,7 @@ ABaseAIPawn::ABaseAIPawn()
 	GetCapsuleComponent()->InitCapsuleSize(42.f, 96.0f);
 
 	bReplicates = true;
-	NetUpdateFrequency = 30.f;
+	NetUpdateFrequency = 15.f;
 	AIControllerClass = ABaseAIController::StaticClass();
 	
 	

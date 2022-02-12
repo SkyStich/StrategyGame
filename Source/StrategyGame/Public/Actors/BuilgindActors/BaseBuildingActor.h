@@ -12,6 +12,7 @@
 #include "Interfaces/FindObjectTeamInterface.h"
 #include "Player/UI/MathWidgetBase/BaseMatchWidget.h"
 #include "Structs/AllianceBuildingStructures.h"
+#include "Structs/AllianceAIData.h"
 #include "BaseBuildingActor.generated.h"
 
 class ASpectatorPlayerController;
@@ -21,29 +22,41 @@ struct FQueueData
 {
 	GENERATED_BODY()
 
-	FQueueData() : Key(""), Value(FBaseSpawnPawnData()) {}
-	FQueueData(const FName& NewName, const FBaseSpawnPawnData& Data) : Key(NewName), Value(Data) {}
+	FQueueData() : RowName(""), PawnClass(nullptr), TimeBeforeSpawn(1.f), Icon(nullptr), ResourcesNeedToBuy() {}
+	FQueueData(const FName& Key, float Time, TAssetPtr<UTexture2D> Texture, TAssetSubclassOf<ABaseAIPawn> Class, TArray<FResourcesData> ResourcesData) : 
+	RowName(Key), PawnClass(Class), TimeBeforeSpawn(Time), Icon(Texture), ResourcesNeedToBuy(ResourcesData) {}
 
 	UPROPERTY(BlueprintReadOnly)
-	FName Key;
+	FName RowName;
+	
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
+	TAssetSubclassOf<ABaseAIPawn> PawnClass;
 
-	UPROPERTY(BlueprintReadOnly)
-	FBaseSpawnPawnData Value;
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
+	float TimeBeforeSpawn;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
+	TAssetPtr<UTexture2D> Icon;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
+	TArray<FResourcesData> ResourcesNeedToBuy;
 };
 
 UCLASS(Abstract, Blueprintable)
 class STRATEGYGAME_API ABaseBuildingActor : public AActor, public IHighlightedInterface, public IGiveOrderToTargetPawns, public IFindObjectTeamInterface
 {
 	GENERATED_BODY()
+	
+	void StartSpawnPawn(const FName& Key);
 
 	UFUNCTION(Server, Unreliable)
-	void Server_SpawnPawn(class UDataTable* PawnData, const FName& Key);
+	void Server_SpawnPawn(const FName& Key);
 
 	UFUNCTION(Server, Unreliable)
 	void Server_RemoveItemFromQueue(const FName& Id);
 
 	UFUNCTION(Client, Unreliable)
-	void Client_OnSpawnFinished();
+	void Client_OnSpawnFinished(const FName& Key);
 
 	UFUNCTION()
 	void OnSpawnPawn(FName Key, FVector SpawnLocation, TAssetSubclassOf<class ABaseAIPawn> SpawnClass);
@@ -65,7 +78,7 @@ public:
 	virtual void HighlightedActor_Implementation(AStrategyGameBaseHUD* PlayerHUD) override;
 
 	void RemoveSlotFromQueue(USpawnProgressSlotBase* SlotForRemove);
-	void SpawnPawn(class UDataTable* PawnData, const FName& Id);
+	void SpawnPawn(const FName& Id);
 	void SetOwnerController(ASpectatorPlayerController* Controller);
 	void SetTeamOwner(EObjectTeam Team) { OwnerTeam = Team; }
 
@@ -74,7 +87,7 @@ public:
 
 	/** generate queue slot from new item in queue */
 	UFUNCTION(BlueprintCallable)
-    void GenerateQueueSlot(const FName& Id, const FBaseSpawnPawnData& SpawnData);
+    void GenerateQueueSlot(const FName& Id);
 
 protected:
 
@@ -99,6 +112,10 @@ private:
 	/** The point to which pawns will aim after emerging from this building  */
 	UPROPERTY(BlueprintReadOnly, Replicated, Category = "Owners|PlayerController", meta=(AllowPrivateAccess="true"))
 	FVector InitialDestination;
+
+	/** Spawn pawn row names from table DT_AIPawnData */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "SpawnData", meta = (AllowPrivateAccess = "true"))
+	TArray<FName> PawnRowNames;
 
 	UPROPERTY()
 	TSubclassOf<class USpawnProgressSlotBase> SpawnProgressSlot;

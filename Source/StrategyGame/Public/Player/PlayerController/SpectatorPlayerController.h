@@ -93,7 +93,12 @@ public:
 	virtual void GetLifetimeReplicatedProps(TArray< FLifetimeProperty > & OutLifetimeProps) const override;
 	virtual void SetupInputComponent() override;
 	virtual EObjectTeam FindObjectTeam_Implementation() override;
+
+	/** return line trace result with current mouse position */
 	const FHitResult& GetMousePositionResult() const { return MousePositionResult; }
+
+	/** return data table for spawn ai */
+	UDataTable* GetAISpawnData();
 
 	/**
 	* On or Off custom depth on actor
@@ -173,6 +178,10 @@ private:
 	
 	UPROPERTY(Replicated)
 	TArray<AActor*> TargetActors;
+
+	/** pawn data table for spawn pawn */
+	UPROPERTY()
+	TMap<EObjectTeam, UDataTable*> AISpawnDataTables;
 	
 	/** Mouse hit result with line trace from mouse position. Valid on owning client */
 	FHitResult MousePositionResult;

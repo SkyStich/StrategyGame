@@ -21,20 +21,6 @@ struct FAllianceBaseData : public FTableRowBase
 };
 
 USTRUCT(BlueprintType)
-struct FBaseSpawnPawnData : public FAllianceBaseData
-{
-	GENERATED_BODY()
-	
-	FBaseSpawnPawnData() : BuilderClass(ABaseAIPawn::StaticClass()), Icon(nullptr) {}
-
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
-	TAssetSubclassOf<ABaseAIPawn> BuilderClass;
-
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
-	TAssetPtr<UTexture2D> Icon;
-};
-
-USTRUCT(BlueprintType)
 struct FAllianceBuildersData : public FAllianceBaseData
 {
 	GENERATED_BODY()

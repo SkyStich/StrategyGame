@@ -29,6 +29,9 @@ ASpectatorPlayerController::ASpectatorPlayerController(const FObjectInitializer&
 
 	static ConstructorHelpers::FObjectFinder<UMaterialInstance> HighlightedInstanceFinder(TEXT("/Game/Assets/SelectingObject/Materials/PP_Outliner_Inst"));
 	if(HighlightedInstanceFinder.Succeeded()) HighlightedMaterialInstance = HighlightedInstanceFinder.Object;
+
+	static ConstructorHelpers::FObjectFinder<UDataTable> AISpawnDataTableFinder(TEXT("/Game/Blueprints/DataTables/DT_AlliancePawnData"));
+	if(HighlightedInstanceFinder.Succeeded()) AISpawnDataTables.Add(EObjectTeam::TeamA, AISpawnDataTableFinder.Object);	
 }
 
 void ASpectatorPlayerController::BeginPlay()
@@ -489,4 +492,9 @@ void ASpectatorPlayerController::SpawnPreBuildAction(TSubclassOf<ABaseBuildingAc
 			UGameplayStatics::FinishSpawningActor(PreBuildingActor, FTransform(FVector(0.f)));
 		}
 	}
+}
+
+UDataTable* ASpectatorPlayerController::GetAISpawnData()
+{
+	return AISpawnDataTables.FindRef(GetStrategyPlayerState()->GetPlayerTeam());
 }

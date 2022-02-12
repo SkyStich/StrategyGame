@@ -4,8 +4,6 @@
 
 #include "CoreMinimal.h"
 #include "Blueprint/UserWidget.h"
-#include "Components/Image.h"
-
 #include "ActionBaseSlot.generated.h"
 
 /**

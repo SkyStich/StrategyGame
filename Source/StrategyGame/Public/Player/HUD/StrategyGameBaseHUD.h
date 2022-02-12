@@ -7,6 +7,8 @@
 #include "Blueprint/UserWidget.h"
 #include "Player/Interfaces/MatchPlayerHUDInterface.h"
 #include "Player/PlayerController/SpectatorPlayerController.h"
+#include "Player/UI/ActionSlots/Base/ActionSpawnPawnSlotBase.h"
+
 #include "StrategyGameBaseHUD.generated.h"
 
 class UBaseMatchWidget;
@@ -25,14 +27,13 @@ public:
 
 	UFUNCTION(BlueprintCallable)
 	void CreateActionGrid(const TArray<class UActionBaseSlot*>& Slots);
-
 	void ClearActionGrid();
 	void RemoveActionGrid();
 	void GroupSelectingReleased();
 	bool GetGroupSelectionActive() const { return bGroupSelectionActive; }
 
 	UBaseMatchWidget* GetMainWidget() const { return MainWidget; }
-	
+	TAssetSubclassOf<UActionSpawnPawnSlotBase> GetActionSpawnPawnSlotClass() const { return ActionSpawnPawnSlotClass; }	
 protected:
 
 	virtual void BeginPlay() override;
@@ -54,6 +55,9 @@ protected:
 
 	UPROPERTY()
 	UBaseMatchWidget* MainWidget;
+
+	UPROPERTY()
+	TAssetSubclassOf<UActionSpawnPawnSlotBase> ActionSpawnPawnSlotClass;
 
 	UPROPERTY()
 	class UActionGridBase* ActionGrid;

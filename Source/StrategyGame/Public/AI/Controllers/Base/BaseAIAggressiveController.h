@@ -17,4 +17,24 @@ private:
 
 	/** get current aggressive controlled pawn helper */
 	ABaseAggressivePawn* GetAggressivePawn() const;
+
+protected:
+
+	virtual void BeginPlay() override;
+	virtual void StartLoseTimer();
+
+	UFUNCTION()
+	virtual void OnSinglePerceptionUpdated(AActor* Actor, FAIStimulus Stimulus) override;
+
+public:
+
+	ABaseAIAggressiveController(const FObjectInitializer& ObjectInitializer);
+
+protected:
+
+	FTimerHandle LoseTargetHandle;
+
+private:
+
+	float LoseTargetTime;
 };

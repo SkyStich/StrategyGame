@@ -3,10 +3,10 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "AI/Pawns/Base/BaseAIPawn.h"
 #include "Engine/DataTable.h"
 #include "Player/UI/ActionSlots/Base/ActionBaseSlot.h"
 #include "Structs/AllianceBuildingStructures.h"
+#include "Structs/AllianceAIData.h"
 #include "ActionSpawnPawnSlotBase.generated.h"
 
 /**
@@ -22,8 +22,8 @@ public:
 	UFUNCTION(BlueprintCallable)
 	bool SpawnPawn();
 
-	UFUNCTION(BlueprintPure)
-	FBaseSpawnPawnData GetPawnData() const;
+	UFUNCTION(BlueprintNativeEvent)
+	void Init(class ABaseBuildingActor* OwnerBuild, const FName& RowName, const TAssetPtr<UTexture2D>& Icon);
 
 protected:
 
@@ -32,10 +32,4 @@ protected:
 	
 	UPROPERTY(BlueprintReadOnly, VisibleInstanceOnly, meta = (ExposeOnSpawn = "true"))
 	FName RowId;
-
-	UPROPERTY(BlueprintReadOnly, VisibleInstanceOnly, meta = (ExposeOnSpawn = "true"))
-	TAssetPtr<UTexture2D> SlotIcon;
-	
-	UPROPERTY(BlueprintReadOnly, VisibleInstanceOnly, meta = (ExposeOnSpawn = "true"))
-    UDataTable* PawnData;
 };

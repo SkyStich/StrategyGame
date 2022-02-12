@@ -7,24 +7,14 @@
 
 bool UActionSpawnPawnSlotBase::SpawnPawn()
 {
-	if(BuildOwner && PawnData)
-	{
-		const FString ContextString = FString(PawnData->GetName());
-		auto const Row = PawnData->FindRow<FBaseSpawnPawnData>(RowId, *ContextString);
-		if(Row)
-		{
-			if(Row->ResourcesNeedToBuy.Num() <= 0) return false;
-			BuildOwner->SpawnPawn(PawnData, RowId);
-		}
-		return true;
-	}
-	return false;
+	if(!BuildOwner) return false;
+	
+	BuildOwner->SpawnPawn(RowId);
+	return true;
 }
 
-FBaseSpawnPawnData UActionSpawnPawnSlotBase::GetPawnData() const
+void UActionSpawnPawnSlotBase::Init_Implementation(ABaseBuildingActor* OwnerBuild, const FName& RowName, const TAssetPtr<UTexture2D>& Icon)
 {
-	if(!PawnData) return FBaseSpawnPawnData();
-	const FString ContextString = FString(PawnData->GetName());
-	auto const Row = PawnData->FindRow<FBaseSpawnPawnData>(RowId, *ContextString);
-	return Row ? *Row : FBaseSpawnPawnData();
+	RowId = RowName;
+	BuildOwner = OwnerBuild;
 }

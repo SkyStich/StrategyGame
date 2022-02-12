@@ -19,6 +19,9 @@ AStrategyGameBaseHUD::AStrategyGameBaseHUD()
 
 	static ConstructorHelpers::FClassFinder<UActionGridBase>ActionGridFinder(TEXT("/Game/Blueprints/UI/Actions/Grid/W_ActionGrud"));
 	if(ActionGridFinder.Succeeded()) ActionGridClass = ActionGridFinder.Class;
+
+	static ConstructorHelpers::FClassFinder<UActionSpawnPawnSlotBase>SpawnPawnSlotFinder(TEXT("/Game/Blueprints/UI/Actions/W_SpawnPawnSlot"));
+	if(SpawnPawnSlotFinder.Succeeded()) ActionSpawnPawnSlotClass = SpawnPawnSlotFinder.Class;
 }
 
 void AStrategyGameBaseHUD::BeginPlay()
