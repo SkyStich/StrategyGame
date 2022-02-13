@@ -321,8 +321,7 @@ void ASpectatorPlayerController::Server_SingleSelectActor_Implementation(const F
 			if(TargetActors.Num() > 0)
 			{
 				ClearTargetActors();
-			}	
-			AddSingleTargetActor(OutHit.GetActor());
+			}
 			Client_CallHighlightedOnSelectObject(OutHit.GetActor());
 		}
 	}

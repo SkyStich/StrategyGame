@@ -13,7 +13,7 @@
 #include "Player/HUD/StrategyGameBaseHUD.h"
 #include "Player/PlayerController/SpectatorPlayerController.h"
 #include "Player/UI/SpawnProgress/SpawnProgressSlotBase.h"
-#include "Engine/DataTable.h"
+#include "GameFramework/PlayerState.h"
 
 // Sets default values
 ABaseBuildingActor::ABaseBuildingActor()
@@ -23,6 +23,7 @@ ABaseBuildingActor::ABaseBuildingActor()
 	
 	bReplicates = true;
 	NetUpdateFrequency = 1.f;
+	bIsHighlighted = false;
 	InitialDestination = FVector::ZeroVector;
 
 	BoxCollision = CreateDefaultSubobject<UBoxComponent>(TEXT("BoxComponent"));
@@ -42,7 +43,7 @@ ABaseBuildingActor::ABaseBuildingActor()
 void ABaseBuildingActor::BeginPlay()
 {
 	Super::BeginPlay();
-
+	
 	if(OwnerPlayerController && GetLocalRole() != ROLE_Authority)
 	{
 		OwnerPlayerController->OnActionWithObjectReleasedEvent.AddDynamic(this, &ABaseBuildingActor::UnHighlighted);
@@ -63,6 +64,11 @@ void ABaseBuildingActor::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& O
 	DOREPLIFETIME(ABaseBuildingActor, OwnerTeam);
 }
 
+void ABaseBuildingActor::PreReplication(IRepChangedPropertyTracker& ChangedPropertyTracker)
+{
+	Super::PreReplication(ChangedPropertyTracker);
+}
+
 void ABaseBuildingActor::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
@@ -73,10 +79,53 @@ void ABaseBuildingActor::SetOwnerController(ASpectatorPlayerController* Controll
 	OwnerPlayerController = Controller;	
 }
 
+void ABaseBuildingActor::StartSpawnTimer(const FName& Key)
+{
+	if(GetLocalRole() != ROLE_Authority && !GetWorld()->GetTimerManager().IsTimerActive(SpawnPawnHandle))
+	{
+		auto const Ping = OwnerPlayerController->PlayerState->GetPing() / 10;
+		auto const PawnData = OwnerPlayerController->GetAISpawnData();
+		if(!PawnData) return;
+		
+		auto const RowData = PawnData->FindRow<FAIPawnData>(Key, *PawnData->GetName());
+		if(!RowData) return;
+
+		FTimerDelegate TimerDel;
+		TimerDel.BindUObject(this, &ABaseBuildingActor::OnSpawnComplete);
+		GetWorld()->GetTimerManager().SetTimer(SpawnPawnHandle, TimerDel, RowData->TimeBeforeSpawn + Ping, false);
+	}
+}
+
+void ABaseBuildingActor::RefreshSpawnTimer()
+{
+	GetWorld()->GetTimerManager().ClearTimer(SpawnPawnHandle);
+	if(QueueOfSpawn.Num() <= 0) return;
+	
+	auto const Ping = OwnerPlayerController->PlayerState->GetPing() / 10;
+	FTimerDelegate TimerDel;
+	TimerDel.BindUObject(this, &ABaseBuildingActor::OnSpawnComplete);
+	FQueueData TempData = FQueueData();
+	for(auto ByArray : QueueOfSpawn)
+	{
+		if(!ByArray.RowName.IsNone())
+		{
+			TempData = ByArray;
+			break;
+		}
+	}
+	GetWorld()->GetTimerManager().SetTimer(SpawnPawnHandle, TimerDel, TempData.TimeBeforeSpawn + Ping, false);
+}
+
+void ABaseBuildingActor::OnSpawnComplete()
+{
+	GetWorld()->GetTimerManager().ClearTimer(SpawnPawnHandle);
+}
+
 void ABaseBuildingActor::SpawnPawn(const FName& Id)
 {
 	if(QueueOfSpawn.Num() >= 9) return;	
 	Server_SpawnPawn(Id);
+	StartSpawnTimer(Id);
 }
 
 void ABaseBuildingActor::Server_SpawnPawn_Implementation(const FName& Key)
@@ -148,8 +197,8 @@ void ABaseBuildingActor::OnSpawnPawn(FName Key, FVector SpawnLocation, TAssetSub
 
 void ABaseBuildingActor::Client_OnSpawnFinished_Implementation(const FName& Key)
 {
-	GEngine->AddOnScreenDebugMessage(-1, 2.f, FColor::Green, TEXT("SPAWN!!!"));
 	QueueOfSpawn.RemoveAll([&](FQueueData Item) -> bool { return Item.RowName == Key; });
+	RefreshSpawnTimer();
 	GenerateQueueSlots();
 }
 
@@ -198,7 +247,7 @@ FVector ABaseBuildingActor::FindSpawnLocation()
 void ABaseBuildingActor::GiveOrderToTargetPawn_Implementation(const FVector& LocationToMove, AActor* ActorToMove)
 {
 	InitialDestination = LocationToMove;
-	DrawDebugSphere(GetWorld(), LocationToMove, 80, 12, FColor::Cyan, false, 2.f);
+	DrawDebugSphere(GetWorld(), LocationToMove,1200, 12, FColor::Cyan, false, 2.f);
 }
 
 EObjectTeam ABaseBuildingActor::FindObjectTeam_Implementation()
@@ -220,9 +269,18 @@ void ABaseBuildingActor::GenerateQueueSlots()
 {
 	UBaseMatchWidget* MainWidget = OwnerPlayerController->GetHUD<AStrategyGameBaseHUD>()->GetMainWidget();
 	MainWidget->ClearQueueBorder();
+	int32 Index = -1;
 	for(const auto& ByArray : QueueOfSpawn)
 	{
 		if(ByArray.RowName.IsNone()) continue;
+		
+		Index++;
+		float TempMaxTime = ByArray.TimeBeforeSpawn;
+		if(Index == 0 && GetWorld()->GetTimerManager().IsTimerActive(SpawnPawnHandle))
+		{
+			TempMaxTime = GetWorld()->GetTimerManager().GetTimerRemaining(SpawnPawnHandle);
+		}
+		
 		auto SlotWidget = CreateWidget<USpawnProgressSlotBase>(OwnerPlayerController, SpawnProgressSlot);
 		if(SlotWidget)
 		{
@@ -237,37 +295,34 @@ void ABaseBuildingActor::GenerateQueueSlots()
 
 void ABaseBuildingActor::HighlightedActor_Implementation(AStrategyGameBaseHUD* PlayerHUD)
 {
-	if(GetLocalRole() != ROLE_Authority || GetNetMode() == NM_Standalone || GetNetMode() == NM_ListenServer)
+	Server_Highlighted();
+	UDataTable* TempSpawnData = OwnerPlayerController->GetAISpawnData();
+	if(!TempSpawnData)
 	{
-		bIsHighlighted = true;
-		UDataTable* TempSpawnData = OwnerPlayerController->GetAISpawnData();
-		if(!TempSpawnData)
-		{
-			/** @todo add logic for bug fixed */
-			return;
-		}
-		
-		TArray<UActionBaseSlot*> SpawnSlots;
-		for(auto ByArray : PawnRowNames)
-		{
-			FString const ContextString = TempSpawnData->GetName();
-			FAIPawnData* PawnData = TempSpawnData->FindRow<FAIPawnData>(ByArray, ContextString);
-			if(!PawnData)
-			{
-				UE_LOG(LogActor, Error, TEXT("PawnRowNames have not valid row! --%s"), *GetFullName());
-				continue;
-			}
-			
-			auto TempSlot = USyncLoadLibrary::SyncLoadWidget<UActionSpawnPawnSlotBase>(this, PlayerHUD->GetActionSpawnPawnSlotClass(), OwnerPlayerController);
-			if(TempSlot)
-			{
-				TempSlot->Init(this, ByArray, PawnData->Icon);
-				SpawnSlots.Add(TempSlot);
-			}
-		}
-		PlayerHUD->CreateActionGrid(SpawnSlots);
-		GenerateQueueSlots();
+		/** @todo add logic for bug fixed */
+		return;
 	}
+		
+	TArray<UActionBaseSlot*> SpawnSlots;
+	for(auto ByArray : PawnRowNames)
+	{
+		FString const ContextString = TempSpawnData->GetName();
+		FAIPawnData* PawnData = TempSpawnData->FindRow<FAIPawnData>(ByArray, ContextString);
+		if(!PawnData)
+		{
+			UE_LOG(LogActor, Error, TEXT("PawnRowNames have not valid row! --%s"), *GetFullName());
+			continue;
+		}
+			
+		auto TempSlot = USyncLoadLibrary::SyncLoadWidget<UActionSpawnPawnSlotBase>(this, PlayerHUD->GetActionSpawnPawnSlotClass(), OwnerPlayerController);
+		if(TempSlot)
+		{
+			TempSlot->Init(this, ByArray, PawnData->Icon);
+			SpawnSlots.Add(TempSlot);
+		}
+	}
+	PlayerHUD->CreateActionGrid(SpawnSlots);
+	GenerateQueueSlots();
 }
 
 void ABaseBuildingActor::GenerateQueueSlot(const FName& Id)
@@ -296,14 +351,35 @@ void ABaseBuildingActor::GenerateQueueSlot(const FName& Id)
 
 void ABaseBuildingActor::RemoveSlotFromQueue(USpawnProgressSlotBase* SlotForRemove)
 {
-	QueueOfSpawn.RemoveAllSwap([&](FQueueData Item) -> bool { return Item.RowName == SlotForRemove->GetId(); });
+	int32 const RemoveIndex = QueueOfSpawn.IndexOfByPredicate([&](FQueueData Item) -> bool { return Item.RowName == SlotForRemove->GetId(); });
+	bool const IsFrontSlot = !QueueOfSpawn.IsValidIndex(RemoveIndex - 1);
+	QueueOfSpawn.RemoveAll([&](FQueueData Item) -> bool { return Item.RowName == SlotForRemove->GetId(); });
+	if(IsFrontSlot)
+	{
+		RefreshSpawnTimer();
+	}
 	GenerateQueueSlots();
 	Server_RemoveItemFromQueue(SlotForRemove->GetId());
 }
 
 void ABaseBuildingActor::Server_RemoveItemFromQueue_Implementation(const FName& Id)
 {
-	QueueOfSpawn.RemoveAllSwap([&](FQueueData Item) -> bool { return Item.RowName == Id; });
+	int32 const RemoveIndex = QueueOfSpawn.IndexOfByPredicate([&](FQueueData Item) -> bool { return Item.RowName == Id; });
+	if(!QueueOfSpawn.IsValidIndex(RemoveIndex - 1))
+	{
+		QueueOfSpawn.RemoveAll([&](FQueueData Item) -> bool { return Item.RowName == Id; });
+		RefreshQueue();
+		return;
+	}
+	QueueOfSpawn.RemoveAll([&](FQueueData Item) -> bool { return Item.RowName == Id; });
 }
 
+void ABaseBuildingActor::Server_Highlighted_Implementation()
+{
+	bIsHighlighted = true;
+}
 
+void ABaseBuildingActor::Server_UnHighlighted_Implementation()
+{
+	UnHighlighted();
+}

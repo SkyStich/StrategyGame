@@ -5,6 +5,7 @@
 #include "CoreMinimal.h"
 #include "Player/Interfaces/HighlightedInterface.h"
 #include "Components/BoxComponent.h"
+#include "Net/RepLayout.h"
 #include "GameFramework/Actor.h"
 #include "Interfaces/GiveOrderToTargetPawns.h"
 #include "NavigationSystem.h"
@@ -46,11 +47,28 @@ UCLASS(Abstract, Blueprintable)
 class STRATEGYGAME_API ABaseBuildingActor : public AActor, public IHighlightedInterface, public IGiveOrderToTargetPawns, public IFindObjectTeamInterface
 {
 	GENERATED_BODY()
+
+	/** Start spawn pawn client logic */
+	UFUNCTION()
+	void StartSpawnTimer(const FName& Key);
+
+	UFUNCTION()
+	void OnSpawnComplete();
+
+	UFUNCTION()
+	void RefreshSpawnTimer();
+	/** End spawn pawn client logic */
 	
 	void StartSpawnPawn(const FName& Key);
 
 	UFUNCTION(Server, Unreliable)
 	void Server_SpawnPawn(const FName& Key);
+	
+	UFUNCTION(Server, Unreliable)
+	void Server_Highlighted();
+
+	UFUNCTION(Server, Unreliable)
+	void Server_UnHighlighted();
 
 	UFUNCTION(Server, Unreliable)
 	void Server_RemoveItemFromQueue(const FName& Id);
@@ -73,6 +91,7 @@ public:
 
 	virtual void Tick(float DeltaTime) override;
 	virtual void GetLifetimeReplicatedProps(TArray< FLifetimeProperty > & OutLifetimeProps) const override;
+	virtual void PreReplication(IRepChangedPropertyTracker& ChangedPropertyTracker) override;
 	virtual void GiveOrderToTargetPawn_Implementation(const FVector& LocationToMove, AActor* ActorToMove) override;
 	virtual EObjectTeam FindObjectTeam_Implementation() override;
 	virtual void HighlightedActor_Implementation(AStrategyGameBaseHUD* PlayerHUD) override;
@@ -126,7 +145,7 @@ private:
 	UPROPERTY(Replicated)
 	EObjectTeam OwnerTeam;
 	
-	UPROPERTY()
+	UPROPERTY(BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
 	FTimerHandle SpawnPawnHandle;
 
 	/** true if build is highlighted */

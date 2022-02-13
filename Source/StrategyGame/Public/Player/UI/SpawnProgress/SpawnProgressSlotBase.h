@@ -39,7 +39,7 @@ protected:
 	UPROPERTY(BlueprintReadOnly)
 	FName Id;
 
-	UPROPERTY()
+	UPROPERTY(BlueprintReadOnly)
 	ABaseBuildingActor* BuildOwner;
 
 public:
