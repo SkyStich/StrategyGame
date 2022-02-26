@@ -14,6 +14,7 @@
 #include "Player/PlayerController/SpectatorPlayerController.h"
 #include "Player/UI/SpawnProgress/SpawnProgressSlotBase.h"
 #include "GameFramework/PlayerState.h"
+#include "GameInstance/Subsystems/GameAIPawnSubsystem.h"
 
 // Sets default values
 ABaseBuildingActor::ABaseBuildingActor()
@@ -61,6 +62,7 @@ void ABaseBuildingActor::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& O
 
 	DOREPLIFETIME_CONDITION(ABaseBuildingActor, OwnerPlayerController, COND_OwnerOnly);
 	DOREPLIFETIME_CONDITION(ABaseBuildingActor, QueueOfSpawn, COND_OwnerOnly);
+	DOREPLIFETIME_CONDITION(ABaseBuildingActor, BuildName, COND_InitialOnly);
 	DOREPLIFETIME(ABaseBuildingActor, OwnerTeam);
 }
 
@@ -84,7 +86,7 @@ void ABaseBuildingActor::StartSpawnTimer(const FName& Key)
 	if(GetLocalRole() != ROLE_Authority && !GetWorld()->GetTimerManager().IsTimerActive(SpawnPawnHandle))
 	{
 		auto const Ping = OwnerPlayerController->PlayerState->GetPing() / 10;
-		auto const PawnData = OwnerPlayerController->GetAISpawnData();
+		auto const PawnData = GetGameInstance()->GetSubsystem<UGameAIPawnSubsystem>()->GetPawnDataByTeam(OwnerTeam);
 		if(!PawnData) return;
 		
 		auto const RowData = PawnData->FindRow<FAIPawnData>(Key, *PawnData->GetName());
@@ -107,13 +109,13 @@ void ABaseBuildingActor::RefreshSpawnTimer()
 	FQueueData TempData = FQueueData();
 	for(auto ByArray : QueueOfSpawn)
 	{
-		if(!ByArray.RowName.IsNone())
+		if(!ByArray.QueueId.IsNone())
 		{
 			TempData = ByArray;
 			break;
 		}
 	}
-	GetWorld()->GetTimerManager().SetTimer(SpawnPawnHandle, TimerDel, TempData.TimeBeforeSpawn + Ping, false);
+	GetWorld()->GetTimerManager().SetTimer(SpawnPawnHandle, TimerDel, TempData.Value.TimeBeforeSpawn + Ping, false);
 }
 
 void ABaseBuildingActor::OnSpawnComplete()
@@ -142,7 +144,7 @@ void ABaseBuildingActor::StartSpawnPawn(const FName& Key)
 	
 	if(OwnerPlayerController)
 	{
-		auto const PawnData = OwnerPlayerController->GetAISpawnData();
+		auto const PawnData = GetGameInstance()->GetSubsystem<UGameAIPawnSubsystem>()->GetPawnDataByTeam(OwnerTeam);
 		
 		if(!PawnData)
 		{
@@ -153,15 +155,16 @@ void ABaseBuildingActor::StartSpawnPawn(const FName& Key)
 		/** find row */
 		FAIPawnData* PawnDataTable = PawnData->FindRow<FAIPawnData>(Key, *PawnData->GetName());
 		if(!PawnDataTable) return;
-
 		/** Generate key for queue array */
 		FName QueueKey = FName(FString(Key.ToString() + "_" + FString::FromInt(FMath::RandRange(0, 9999))));
-		if(QueueOfSpawn.FindByPredicate([&](FQueueData Item) -> bool { return Item.RowName == QueueKey; }))
+		if(QueueOfSpawn.FindByPredicate([&](FQueueData Item) -> bool { return Item.QueueId == QueueKey; }))
 		{
 			StartSpawnPawn(Key);
 			return;
 		}
-		QueueOfSpawn.Add(FQueueData(QueueKey, PawnDataTable->TimeBeforeSpawn, PawnDataTable->Icon, PawnDataTable->PawnClass, PawnDataTable->ResourcesNeedToBuy));
+
+		FQueueData const QueueData(FQueueData(QueueKey, *PawnDataTable));
+		QueueOfSpawn.Add(QueueData);
 
 		if(GetWorld()->GetTimerManager().IsTimerActive(SpawnPawnHandle)) return;
 		if(UKismetMathLibrary::IsPointInBox(SpawnLocation, BoxCollision->GetComponentLocation(), Ext))
@@ -171,25 +174,26 @@ void ABaseBuildingActor::StartSpawnPawn(const FName& Key)
 		}
 		
 		FTimerDelegate TimerDelegate;
-		TimerDelegate.BindUObject(this, &ABaseBuildingActor::OnSpawnPawn, QueueKey, SpawnLocation, PawnDataTable->PawnClass);
+		TimerDelegate.BindUObject(this, &ABaseBuildingActor::OnSpawnPawn, QueueData, SpawnLocation);
 		GetWorld()->GetTimerManager().SetTimer(SpawnPawnHandle, TimerDelegate, PawnDataTable->TimeBeforeSpawn, false);
 	}
 }
 
-void ABaseBuildingActor::OnSpawnPawn(FName Key, FVector SpawnLocation, TAssetSubclassOf<ABaseAIPawn> SpawnClass)
+void ABaseBuildingActor::OnSpawnPawn(FQueueData QueueData, FVector SpawnLocation)
 {
 	GetWorld()->GetTimerManager().ClearTimer(SpawnPawnHandle);
-	QueueOfSpawn.RemoveAll([&](FQueueData Item) -> bool { return Item.RowName == Key; });
-	Client_OnSpawnFinished(Key);
+	QueueOfSpawn.RemoveAll([&](FQueueData Item) -> bool { return Item.QueueId == QueueData.QueueId; });
+	Client_OnSpawnFinished(QueueData.QueueId);
 	
 	FActorSpawnParameters SpawnParameters;
 	SpawnParameters.Instigator = OwnerPlayerController->GetPawnOrSpectator();
 	SpawnParameters.Owner = OwnerPlayerController;
 	SpawnParameters.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButAlwaysSpawn;
-	ABaseAIPawn* BaseSpawnPawn = GetWorld()->SpawnActor<ABaseAIPawn>(USyncLoadLibrary::SyncLoadClass(this, SpawnClass), SpawnLocation, FRotator::ZeroRotator, SpawnParameters);
+	ABaseAIPawn* BaseSpawnPawn = GetWorld()->SpawnActor<ABaseAIPawn>(USyncLoadLibrary::SyncLoadClass(this, QueueData.Value.PawnClass), SpawnLocation, FRotator::ZeroRotator, SpawnParameters);
 	if(BaseSpawnPawn)
 	{
 		BaseSpawnPawn->SetTeam(OwnerPlayerController->FindObjectTeam_Implementation());
+		BaseSpawnPawn->InitPawn(QueueData.Value);
 		BaseSpawnPawn->FinishSpawning(FTransform(SpawnLocation));
 	}
 	RefreshQueue();
@@ -197,7 +201,7 @@ void ABaseBuildingActor::OnSpawnPawn(FName Key, FVector SpawnLocation, TAssetSub
 
 void ABaseBuildingActor::Client_OnSpawnFinished_Implementation(const FName& Key)
 {
-	QueueOfSpawn.RemoveAll([&](FQueueData Item) -> bool { return Item.RowName == Key; });
+	QueueOfSpawn.RemoveAll([&](FQueueData Item) -> bool { return Item.QueueId == Key; });
 	RefreshSpawnTimer();
 	GenerateQueueSlots();
 }
@@ -222,7 +226,7 @@ void ABaseBuildingActor::RefreshQueue()
 		FQueueData TempData = FQueueData();
 		for(auto ByArray : QueueOfSpawn)
 		{
-			if(!ByArray.RowName.IsNone())
+			if(!ByArray.QueueId.IsNone())
 			{
 				TempData = ByArray;
 				break;
@@ -230,8 +234,8 @@ void ABaseBuildingActor::RefreshQueue()
 		}
 		
 		FTimerDelegate TimerDelegate;
-		TimerDelegate.BindUObject(this, &ABaseBuildingActor::OnSpawnPawn, TempData.RowName, SpawnLocation, TempData.PawnClass);
-		GetWorld()->GetTimerManager().SetTimer(SpawnPawnHandle, TimerDelegate, TempData.TimeBeforeSpawn, false);
+		TimerDelegate.BindUObject(this, &ABaseBuildingActor::OnSpawnPawn, TempData, SpawnLocation);
+		GetWorld()->GetTimerManager().SetTimer(SpawnPawnHandle, TimerDelegate, TempData.Value.TimeBeforeSpawn, false);
 	}
 }
 
@@ -259,10 +263,10 @@ void ABaseBuildingActor::Server_ClearSpawnPawnHandle_Implementation(const FName&
 {
 	if(QueueOfSpawn.Num() <= 0) return;
 
-	auto const Reference = QueueOfSpawn.FindByPredicate([&](FQueueData Item) -> bool { return Item.RowName == Key; });
+	auto const Reference = QueueOfSpawn.FindByPredicate([&](FQueueData Item) -> bool { return Item.QueueId == Key; });
 
 	GetWorld()->GetTimerManager().ClearTimer(SpawnPawnHandle);
-	QueueOfSpawn.RemoveAllSwap([&](FQueueData Item) -> bool { return Item.RowName == Key; });
+	QueueOfSpawn.RemoveAllSwap([&](FQueueData Item) -> bool { return Item.QueueId == Key; });
 }
 
 void ABaseBuildingActor::GenerateQueueSlots()
@@ -272,10 +276,10 @@ void ABaseBuildingActor::GenerateQueueSlots()
 	int32 Index = -1;
 	for(const auto& ByArray : QueueOfSpawn)
 	{
-		if(ByArray.RowName.IsNone()) continue;
+		if(ByArray.QueueId.IsNone()) continue;
 		
 		Index++;
-		float TempMaxTime = ByArray.TimeBeforeSpawn;
+		float TempMaxTime = ByArray.Value.TimeBeforeSpawn;
 		if(Index == 0 && GetWorld()->GetTimerManager().IsTimerActive(SpawnPawnHandle))
 		{
 			TempMaxTime = GetWorld()->GetTimerManager().GetTimerRemaining(SpawnPawnHandle);
@@ -284,10 +288,10 @@ void ABaseBuildingActor::GenerateQueueSlots()
 		auto SlotWidget = CreateWidget<USpawnProgressSlotBase>(OwnerPlayerController, SpawnProgressSlot);
 		if(SlotWidget)
 		{
-			SlotWidget->SetSpawnTime(ByArray.TimeBeforeSpawn);
-			SlotWidget->SetId(ByArray.RowName);
+			SlotWidget->SetSpawnTime(ByArray.Value.TimeBeforeSpawn);
+			SlotWidget->SetId(ByArray.QueueId);
 			SlotWidget->SetBuildOwner(this);
-			SlotWidget->SetIcon(USyncLoadLibrary::SyncLoadTexture(this, ByArray.Icon));
+			SlotWidget->SetIcon(USyncLoadLibrary::SyncLoadTexture(this, ByArray.Value.Icon));
 			MainWidget->AttachSlotToQueue(SlotWidget);
 		}
 	}
@@ -296,7 +300,7 @@ void ABaseBuildingActor::GenerateQueueSlots()
 void ABaseBuildingActor::HighlightedActor_Implementation(AStrategyGameBaseHUD* PlayerHUD)
 {
 	Server_Highlighted();
-	UDataTable* TempSpawnData = OwnerPlayerController->GetAISpawnData();
+	UDataTable* TempSpawnData = GetGameInstance()->GetSubsystem<UGameAIPawnSubsystem>()->GetPawnDataByTeam(OwnerTeam);
 	if(!TempSpawnData)
 	{
 		/** @todo add logic for bug fixed */
@@ -329,7 +333,7 @@ void ABaseBuildingActor::GenerateQueueSlot(const FName& Id)
 {
 	UBaseMatchWidget* MainWidget = OwnerPlayerController->GetHUD<AStrategyGameBaseHUD>()->GetMainWidget();
 	
-	UDataTable* TempSpawnData = OwnerPlayerController->GetAISpawnData();
+	UDataTable* TempSpawnData = GetGameInstance()->GetSubsystem<UGameAIPawnSubsystem>()->GetPawnDataByTeam(OwnerTeam);
 	if(!TempSpawnData)
 	{ 
 		/** @todo add logic for bug fixed */
@@ -351,9 +355,9 @@ void ABaseBuildingActor::GenerateQueueSlot(const FName& Id)
 
 void ABaseBuildingActor::RemoveSlotFromQueue(USpawnProgressSlotBase* SlotForRemove)
 {
-	int32 const RemoveIndex = QueueOfSpawn.IndexOfByPredicate([&](FQueueData Item) -> bool { return Item.RowName == SlotForRemove->GetId(); });
+	int32 const RemoveIndex = QueueOfSpawn.IndexOfByPredicate([&](FQueueData Item) -> bool { return Item.QueueId == SlotForRemove->GetId(); });
 	bool const IsFrontSlot = !QueueOfSpawn.IsValidIndex(RemoveIndex - 1);
-	QueueOfSpawn.RemoveAll([&](FQueueData Item) -> bool { return Item.RowName == SlotForRemove->GetId(); });
+	QueueOfSpawn.RemoveAll([&](FQueueData Item) -> bool { return Item.QueueId == SlotForRemove->GetId(); });
 	if(IsFrontSlot)
 	{
 		RefreshSpawnTimer();
@@ -364,14 +368,14 @@ void ABaseBuildingActor::RemoveSlotFromQueue(USpawnProgressSlotBase* SlotForRemo
 
 void ABaseBuildingActor::Server_RemoveItemFromQueue_Implementation(const FName& Id)
 {
-	int32 const RemoveIndex = QueueOfSpawn.IndexOfByPredicate([&](FQueueData Item) -> bool { return Item.RowName == Id; });
+	int32 const RemoveIndex = QueueOfSpawn.IndexOfByPredicate([&](FQueueData Item) -> bool { return Item.QueueId == Id; });
 	if(!QueueOfSpawn.IsValidIndex(RemoveIndex - 1))
 	{
-		QueueOfSpawn.RemoveAll([&](FQueueData Item) -> bool { return Item.RowName == Id; });
+		QueueOfSpawn.RemoveAll([&](FQueueData Item) -> bool { return Item.QueueId == Id; });
 		RefreshQueue();
 		return;
 	}
-	QueueOfSpawn.RemoveAll([&](FQueueData Item) -> bool { return Item.RowName == Id; });
+	QueueOfSpawn.RemoveAll([&](FQueueData Item) -> bool { return Item.QueueId == Id; });
 }
 
 void ABaseBuildingActor::Server_Highlighted_Implementation()

@@ -3,8 +3,8 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "AI/Pawns/Base/BaseAIPawn.h"
 #include "Engine/DataTable.h"
+#include "Player/Components/ResourcesActorComponent.h"
 #include "AllianceAIData.generated.h"
 
 USTRUCT(BlueprintType)
@@ -37,6 +37,9 @@ struct FAIPawnDescriptionData : public FAIBasePawnData
 	GENERATED_BODY()
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
+	FText ObjectName;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
 	FText Description;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
@@ -49,14 +52,14 @@ struct FAIPawnData : public FAIPawnDescriptionData
 	GENERATED_BODY()
 	
 	FAIPawnData() : Id(""), PawnClass(nullptr), TimeBeforeSpawn(1.f), Icon(nullptr) {}
-	FAIPawnData(const FName& Name, TAssetSubclassOf<ABaseAIPawn> Class, float Time, TAssetPtr<UTexture2D> Texture, const TArray<FResourcesData>& Resources)
+	FAIPawnData(const FName& Name, TAssetSubclassOf<class ABaseAIPawn> Class, float Time, TAssetPtr<UTexture2D> Texture, const TArray<FResourcesData>& Resources)
     : Id(Name), PawnClass(Class), TimeBeforeSpawn(Time), Icon(Texture) {}
 	
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
 	FName Id;
 	
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
-	TAssetSubclassOf<ABaseAIPawn> PawnClass;
+	TAssetSubclassOf<class ABaseAIPawn> PawnClass;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
 	float TimeBeforeSpawn;

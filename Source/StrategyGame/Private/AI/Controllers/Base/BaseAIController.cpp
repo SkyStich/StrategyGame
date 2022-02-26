@@ -37,7 +37,7 @@ void ABaseAIController::SenseConfigInit()
 	SightConfig->DetectionByAffiliation.bDetectEnemies = true;
 	SightConfig->DetectionByAffiliation.bDetectFriendlies = true;
 	SightConfig->DetectionByAffiliation.bDetectNeutrals = true;
-	SightConfig->SetMaxAge(1.f);
+	SightConfig->SetMaxAge(2.f);
 
 	//add sight configuration component to perception component
 	GetPerceptionComponent()->SetDominantSense(*SightConfig->GetSenseImplementation());

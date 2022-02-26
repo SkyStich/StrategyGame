@@ -3,7 +3,6 @@
 #pragma once
 
 #include "CoreMinimal.h"
-
 #include "Engine/StreamableManager.h"
 #include "UObject/NoExportTypes.h"
 #include "SingletonClass.generated.h"

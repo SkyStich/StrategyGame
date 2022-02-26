@@ -27,13 +27,14 @@ public:
 
 	void SetOwnerController(ASpectatorPlayerController* Controller);
 	void SetBuildingActor(TSubclassOf<ABaseBuildingActor> Class) { BuildingActorClass = Class; }
+	void SetBuildDisplayName(const FText& NewName) { BuildName = NewName; }
 
 	UStaticMeshComponent* GetStaticMeshComponent() const { return MeshComponent; }
 	UBoxComponent* GetBoxCollision() const { return BoxCollision; }
 
 private:
 
-	UPROPERTY()
+	UPROPERTY(meta = (ExposeOfSpawn = "true"))
 	ASpectatorPlayerController* OwnerPlayerController;
 
 	UPROPERTY()
@@ -42,10 +43,14 @@ private:
 	UPROPERTY()
 	UStaticMeshComponent* MeshComponent;
 
-	UPROPERTY()
+	UPROPERTY(meta = (ExposeOfSpawn = "true"))
 	TSubclassOf<ABaseBuildingActor> BuildingActorClass;
 
-	/** if true ignores one mouse click.
+	UPROPERTY(meta = (ExposeOfSpawn = "true"))
+	FText BuildName;
+
+	/**
+	 *  if true ignores one mouse click.
 	 *  it is required so that the object does not create a real object after clicking on the slot
 	 */
 	bool bIgnoreSpawnPressed;

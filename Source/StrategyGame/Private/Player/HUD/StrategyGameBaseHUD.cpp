@@ -22,6 +22,9 @@ AStrategyGameBaseHUD::AStrategyGameBaseHUD()
 
 	static ConstructorHelpers::FClassFinder<UActionSpawnPawnSlotBase>SpawnPawnSlotFinder(TEXT("/Game/Blueprints/UI/Actions/W_SpawnPawnSlot"));
 	if(SpawnPawnSlotFinder.Succeeded()) ActionSpawnPawnSlotClass = SpawnPawnSlotFinder.Class;
+
+	static ConstructorHelpers::FClassFinder<UHealthStatisticsBase> HealthStatisticsFinder(TEXT("/Game/Blueprints/UI/HealthState/W_HealthStateWidget"));
+	if(HealthStatisticsFinder.Succeeded()) HealthStatisticsWidgetClass = HealthStatisticsFinder.Class;
 }
 
 void AStrategyGameBaseHUD::BeginPlay()
@@ -29,6 +32,7 @@ void AStrategyGameBaseHUD::BeginPlay()
 	Super::BeginPlay();
 
 	CreateMainWidget();
+	CreateHealthStatisticsWidget();
 	GetOwningPlayerController()->GetOnNewPawnNotifier().AddUObject(this, &AStrategyGameBaseHUD::OnNewControlledPawn);
 }
 
@@ -166,3 +170,40 @@ void AStrategyGameBaseHUD::RemoveActionGrid()
 		ActionGrid = nullptr;
 	}
 }
+
+void AStrategyGameBaseHUD::CreateHealthStatisticsWidget()
+{
+	if(!HealthStatisticsWidget)
+	{
+		HealthStatisticsWidget = USyncLoadLibrary::SyncLoadWidget<UHealthStatisticsBase>(this, HealthStatisticsWidgetClass, GetOwningPlayerController());
+		HealthStatisticsWidget->AddToViewport();
+		HealthStatisticsWidget->SetVisibility(ESlateVisibility::Collapsed);
+	}
+}
+
+void AStrategyGameBaseHUD::RemoveHealthStatisticsWidget()
+{
+	if(HealthStatisticsWidget) HealthStatisticsWidget->RemoveFromParent();
+}
+
+void AStrategyGameBaseHUD::ShowHealthStatistics(AActor* Target)
+{
+	if(!Target) return;
+	
+	if(!HealthStatisticsWidget)
+	{
+		CreateHealthStatisticsWidget();
+	}
+	HealthStatisticsWidget->SetTarget(Target);
+	HealthStatisticsWidget->SetVisibility(ESlateVisibility::HitTestInvisible);
+}
+
+void AStrategyGameBaseHUD::HiddenHealthStatistics()
+{
+	if(HealthStatisticsWidget)
+	{
+		HealthStatisticsWidget->ClearTarget();
+		HealthStatisticsWidget->SetVisibility(ESlateVisibility::Collapsed);
+	}
+}
+

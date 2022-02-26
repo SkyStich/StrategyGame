@@ -28,10 +28,7 @@ ASpectatorPlayerController::ASpectatorPlayerController(const FObjectInitializer&
 	ResourcesActorComponent = CreateDefaultSubobject<UResourcesActorComponent>(TEXT("ResourcesActorComponent"));
 
 	static ConstructorHelpers::FObjectFinder<UMaterialInstance> HighlightedInstanceFinder(TEXT("/Game/Assets/SelectingObject/Materials/PP_Outliner_Inst"));
-	if(HighlightedInstanceFinder.Succeeded()) HighlightedMaterialInstance = HighlightedInstanceFinder.Object;
-
-	static ConstructorHelpers::FObjectFinder<UDataTable> AISpawnDataTableFinder(TEXT("/Game/Blueprints/DataTables/DT_AlliancePawnData"));
-	if(HighlightedInstanceFinder.Succeeded()) AISpawnDataTables.Add(EObjectTeam::TeamA, AISpawnDataTableFinder.Object);	
+	if(HighlightedInstanceFinder.Succeeded()) HighlightedMaterialInstance = HighlightedInstanceFinder.Object;	
 }
 
 void ASpectatorPlayerController::BeginPlay()
@@ -257,6 +254,7 @@ void ASpectatorPlayerController::OnSelectActorReleased()
 	if(!GetMousePositionCustom().Equals(StrategyHUD->StartGroupSelectionPosition, 25.f)) StrategyHUD->GroupSelectingReleased();
 	StrategyHUD->StartGroupSelectionPosition = FVector2D::ZeroVector;
 	StrategyHUD->SetGroupSelectionActive(false);
+	StrategyHUD->HiddenHealthStatistics();
 	
 	FHitResult OutHit;
 	ETraceTypeQuery const TraceChannel = UCollisionProfile::Get()->ConvertToTraceType(bIgnoreHighlighted ? ECC_Camera : ECC_GameTraceChannel1);
@@ -322,6 +320,7 @@ void ASpectatorPlayerController::Server_SingleSelectActor_Implementation(const F
 			{
 				ClearTargetActors();
 			}
+			AddSingleTargetActor(OutHit.GetActor());
 			Client_CallHighlightedOnSelectObject(OutHit.GetActor());
 		}
 	}
@@ -330,7 +329,9 @@ void ASpectatorPlayerController::Server_SingleSelectActor_Implementation(const F
 void ASpectatorPlayerController::Client_CallHighlightedOnSelectObject_Implementation(AActor* Target)
 {
 	UpdateCustomDepthFromActor(Target, true);
-	IHighlightedInterface::Execute_HighlightedActor(Target, GetStrategyGameBaseHUD());		
+	IHighlightedInterface::Execute_HighlightedActor(Target, GetStrategyGameBaseHUD());
+	auto const TempHUD = GetStrategyGameBaseHUD();
+	if(TempHUD) TempHUD->ShowHealthStatistics(Target);
 }
 
 void ASpectatorPlayerController::ClearTargetAllActorsDepth()
@@ -352,14 +353,14 @@ void ASpectatorPlayerController::OnActionWithObjectPressed()
 	StrategyHUD->StartGroupSelectionPosition = GetMousePositionCustom();
 }
 
-void ASpectatorPlayerController::SpawnBuilding(TSubclassOf<ABaseBuildingActor> BuildingClass)
+void ASpectatorPlayerController::SpawnBuilding(TSubclassOf<ABaseBuildingActor> BuildingClass, const FText& BuildName)
 {
 	bIgnoreHighlighted = false;
 
-	Server_SpawnBuilding(BuildingClass, GetMousePositionResult().ImpactPoint);
+	Server_SpawnBuilding(BuildingClass, GetMousePositionResult().ImpactPoint, BuildName);
 }
 
-void ASpectatorPlayerController::Server_SpawnBuilding_Implementation(TSubclassOf<ABaseBuildingActor> SpawnClass, const FVector& Location)
+void ASpectatorPlayerController::Server_SpawnBuilding_Implementation(TSubclassOf<ABaseBuildingActor> SpawnClass, const FVector& Location, const FText& BuildName)
 {
 	FActorSpawnParameters Param;
 	Param.Owner = this;
@@ -371,6 +372,7 @@ void ASpectatorPlayerController::Server_SpawnBuilding_Implementation(TSubclassOf
 	{
 		Building->SetOwnerController(this);
 		Building->SetTeamOwner(GetStrategyPlayerState()->GetPlayerTeam());
+		Building->SetBuildName(BuildName);
 		Building->FinishSpawning(FTransform(Location));
 	}
 }
@@ -480,8 +482,7 @@ void ASpectatorPlayerController::SpawnPreBuildAction(TSubclassOf<ABaseBuildingAc
 		PreBuildingActor = GetWorld()->SpawnActor<APreBuildingActor>(APreBuildingActor::StaticClass(), Param);
 		if(PreBuildingActor)
 		{
-			bIgnoreHighlighted = true;
-				
+			bIgnoreHighlighted = true;		
 			PreBuildingActor->GetStaticMeshComponent()->SetStaticMesh(SubobjectMesh->GetStaticMesh());
 			PreBuildingActor->GetStaticMeshComponent()->SetRelativeScale3D(SubobjectMesh->GetRelativeScale3D());
 			PreBuildingActor->SetBoxExtent(SubobjectBox->GetScaledBoxExtent());
@@ -491,9 +492,4 @@ void ASpectatorPlayerController::SpawnPreBuildAction(TSubclassOf<ABaseBuildingAc
 			UGameplayStatics::FinishSpawningActor(PreBuildingActor, FTransform(FVector(0.f)));
 		}
 	}
-}
-
-UDataTable* ASpectatorPlayerController::GetAISpawnData()
-{
-	return AISpawnDataTables.FindRef(GetStrategyPlayerState()->GetPlayerTeam());
 }

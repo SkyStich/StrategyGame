@@ -23,28 +23,18 @@ struct FQueueData
 {
 	GENERATED_BODY()
 
-	FQueueData() : RowName(""), PawnClass(nullptr), TimeBeforeSpawn(1.f), Icon(nullptr), ResourcesNeedToBuy() {}
-	FQueueData(const FName& Key, float Time, TAssetPtr<UTexture2D> Texture, TAssetSubclassOf<ABaseAIPawn> Class, TArray<FResourcesData> ResourcesData) : 
-	RowName(Key), PawnClass(Class), TimeBeforeSpawn(Time), Icon(Texture), ResourcesNeedToBuy(ResourcesData) {}
+	FQueueData() : QueueId(""), Value(FAIPawnData()) {}
+	FQueueData(const FName& Key, const FAIPawnData& Data) : QueueId(Key), Value(Data) {}
 
 	UPROPERTY(BlueprintReadOnly)
-	FName RowName;
-	
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
-	TAssetSubclassOf<ABaseAIPawn> PawnClass;
+	FName QueueId;
 
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
-	float TimeBeforeSpawn;
-
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
-	TAssetPtr<UTexture2D> Icon;
-
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
-	TArray<FResourcesData> ResourcesNeedToBuy;
+	UPROPERTY(BlueprintReadOnly)
+	FAIPawnData Value;
 };
 
 UCLASS(Abstract, Blueprintable)
-class STRATEGYGAME_API ABaseBuildingActor : public AActor, public IHighlightedInterface, public IGiveOrderToTargetPawns, public IFindObjectTeamInterface
+class STRATEGYGAME_API ABaseBuildingActor : public AActor, public IHighlightedInterface, public IGiveOrderToTargetPawns, public IFindObjectTeamInterface, public IFindObjectNameInterface
 {
 	GENERATED_BODY()
 
@@ -77,7 +67,7 @@ class STRATEGYGAME_API ABaseBuildingActor : public AActor, public IHighlightedIn
 	void Client_OnSpawnFinished(const FName& Key);
 
 	UFUNCTION()
-	void OnSpawnPawn(FName Key, FVector SpawnLocation, TAssetSubclassOf<class ABaseAIPawn> SpawnClass);
+	void OnSpawnPawn(FQueueData QueueData, FVector SpawnLocation);
 
 	UFUNCTION()
 	void UnHighlighted();
@@ -95,11 +85,13 @@ public:
 	virtual void GiveOrderToTargetPawn_Implementation(const FVector& LocationToMove, AActor* ActorToMove) override;
 	virtual EObjectTeam FindObjectTeam_Implementation() override;
 	virtual void HighlightedActor_Implementation(AStrategyGameBaseHUD* PlayerHUD) override;
+	virtual FText FindObjectName_Implementation() const override { return BuildName; }
 
 	void RemoveSlotFromQueue(USpawnProgressSlotBase* SlotForRemove);
 	void SpawnPawn(const FName& Id);
 	void SetOwnerController(ASpectatorPlayerController* Controller);
 	void SetTeamOwner(EObjectTeam Team) { OwnerTeam = Team; }
+	void SetBuildName(const FText& Name) { BuildName = Name; }
 
 	UFUNCTION(Server, Unreliable)
 	void Server_ClearSpawnPawnHandle(const FName& Key);
@@ -125,7 +117,7 @@ private:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Info", meta=(AllowPrivateAccess="true"))
 	UStaticMeshComponent* StaticMeshComponent;
 
-	UPROPERTY(BlueprintReadOnly, Replicated, Category = "Owners|PlayerController", meta=(AllowPrivateAccess="true"))
+	UPROPERTY(BlueprintReadOnly, Replicated, Category = "Owners|PlayerController", meta=(AllowPrivateAccess="true", ExposeOfSpawn = true))
 	ASpectatorPlayerController* OwnerPlayerController;
 
 	/** The point to which pawns will aim after emerging from this building  */
@@ -141,8 +133,11 @@ private:
 
 	UPROPERTY(Replicated)
 	TArray<FQueueData> QueueOfSpawn;
+
+	UPROPERTY(Replicated, meta = (ExposeOfSpawn = "true"))
+	FText BuildName;
 	
-	UPROPERTY(Replicated)
+	UPROPERTY(Replicated, meta = (ExposeOfSpawn = "true"))
 	EObjectTeam OwnerTeam;
 	
 	UPROPERTY(BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))

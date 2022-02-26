@@ -36,11 +36,11 @@ protected:
 	UPROPERTY(BlueprintReadOnly, Replicated)
 	AActor* TargetActor;
 	
+	UPROPERTY()
+	bool bOrderExecuted;
+	
 private:
 
 	UPROPERTY(EditDefaultsOnly, meta = (AllowPrivateAccess = "true"))
 	UAISenseConfig_Sight* SightConfig;
-	
-	UPROPERTY()
-	bool bOrderExecuted;
 };

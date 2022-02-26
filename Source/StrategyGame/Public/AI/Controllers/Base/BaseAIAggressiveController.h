@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "AI/Controllers/Base/BaseAIController.h"
+#include "Perception/AIPerceptionComponent.h"
 #include "BaseAIAggressiveController.generated.h"
 
 class ABaseAggressivePawn;
@@ -22,6 +23,11 @@ protected:
 
 	virtual void BeginPlay() override;
 	virtual void StartLoseTimer();
+	virtual void StartCheckDistanceForAttack();
+	virtual void StopCheckDistanceForAttack();
+	
+	UFUNCTION()
+	virtual void CheckDistanceForAttack();
 
 	UFUNCTION()
 	virtual void OnSinglePerceptionUpdated(AActor* Actor, FAIStimulus Stimulus) override;
@@ -29,6 +35,7 @@ protected:
 public:
 
 	ABaseAIAggressiveController(const FObjectInitializer& ObjectInitializer);
+	virtual void MoveToGiveOrder(const FVector& Location, AActor* NewTargetActor) override;
 
 protected:
 
@@ -37,4 +44,6 @@ protected:
 private:
 
 	float LoseTargetTime;
+
+	FTimerHandle CheckDistanceForAttackHandle;
 };

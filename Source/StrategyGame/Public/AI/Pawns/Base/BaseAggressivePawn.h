@@ -19,8 +19,18 @@ protected:
 public:
 	ABaseAggressivePawn(const FObjectInitializer& ObjectInitializer);
 
+	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
+	virtual void StartAttackTargetActor(AActor* Target);
+	virtual void StopAttack();
+
 private:
 
 	UPROPERTY(VisibleDefaultsOnly, BlueprintReadOnly, Category = "SkeletalMesh|WeaponMesh", meta=(AllowPrivateAccess="true"))
 	USkeletalMeshComponent* WeaponMesh;
+
+	UPROPERTY(Replicated)
+	bool bAttacking;
+
+	UPROPERTY()
+	FTimerHandle RefreshAttackHandle;
 };

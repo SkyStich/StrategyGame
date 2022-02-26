@@ -7,6 +7,8 @@
 #include "Net/UnrealNetwork.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "Components/CapsuleComponent.h"
+#include "ActorComponents/Actors/ObjectHealthComponent.h"
+#include "GameInstance/Subsystems/GameAIPawnSubsystem.h"
 
 // Sets default values
 ABaseAIPawn::ABaseAIPawn()
@@ -27,6 +29,8 @@ ABaseAIPawn::ABaseAIPawn()
 	GetCharacterMovement()->MovementState.bCanJump = false;
 	GetCharacterMovement()->MovementState.bCanCrouch = false;
 
+	ObjectHealthComponent = CreateDefaultSubobject<UObjectHealthComponent>(TEXT("ObjectHealthComponent"));
+
 	bUseControllerRotationYaw = true;
 }
 
@@ -41,6 +45,8 @@ void ABaseAIPawn::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifet
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 
 	DOREPLIFETIME(ABaseAIPawn, OwnerTeam);
+	DOREPLIFETIME_CONDITION(ABaseAIPawn, PawnName, COND_InitialOnly);
+	DOREPLIFETIME_CONDITION(ABaseAIPawn, PawnRowName, COND_InitialOnly);
 }
 
 void ABaseAIPawn::GiveOrderToTargetPawn_Implementation(const FVector& LocationToMove, AActor* ActorToMove)
@@ -53,4 +59,25 @@ void ABaseAIPawn::GiveOrderToTargetPawn_Implementation(const FVector& LocationTo
 			AIController->MoveToGiveOrder(LocationToMove, ActorToMove);
 		}
 	}
+}
+
+void ABaseAIPawn::SetHealthDefault(float const Value)
+{
+	if(GetLocalRole() != ROLE_Authority) return;
+
+	ObjectHealthComponent->SetMaxHealthByDefault(Value);
+}
+
+void ABaseAIPawn::InitPawn(const FAIPawnData& PawnData)
+{
+	if(GetLocalRole() == ROLE_Authority)
+    {
+    	PawnRowName = PawnData.Id;
+		PawnName = PawnData.ObjectName;
+
+		/** init attack data */
+		AttackData.BaseDamage = PawnData.BaseDamage;
+		AttackData.BaseDelayBeforeUsed = PawnData.BaseDelayBeforeAttack;
+		AttackData.BaseDistanceForAttack = PawnData.BaseRangeAttack;
+    }
 }

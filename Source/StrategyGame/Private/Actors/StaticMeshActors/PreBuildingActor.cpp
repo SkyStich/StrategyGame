@@ -59,8 +59,7 @@ void APreBuildingActor::OnSpawnBuilding()
 	BoxCollision->GetOverlappingActors(OverlappedActors);
 	if(OverlappedActors.Num() <= 0)
 	{
-		OwnerPlayerController->SpawnBuilding(BuildingActorClass);
+		OwnerPlayerController->SpawnBuilding(BuildingActorClass, BuildName);
 	}
 	Destroy();
 }
-

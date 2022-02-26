@@ -73,9 +73,10 @@ class STRATEGYGAME_API ASpectatorPlayerController : public APlayerController, pu
 	* 
 	* @param	SpawnClass  Class for spawn
 	* @param	Location	Location for spawn actor
+	* @param	BuildName	Build display name for clients
 	*/
-	UFUNCTION(Server, Unreliable)
-    void Server_SpawnBuilding(TSubclassOf<ABaseBuildingActor> SpawnClass, const FVector& Location);
+	UFUNCTION(Server, Reliable)
+    void Server_SpawnBuilding(TSubclassOf<ABaseBuildingActor> SpawnClass, const FVector& Location, const FText& BuildName);
 
 protected:
 
@@ -96,9 +97,6 @@ public:
 
 	/** return line trace result with current mouse position */
 	const FHitResult& GetMousePositionResult() const { return MousePositionResult; }
-
-	/** return data table for spawn ai */
-	UDataTable* GetAISpawnData();
 
 	/**
 	* On or Off custom depth on actor
@@ -135,8 +133,9 @@ public:
 	 * start spawn building logic
 	 *
 	 * @param	BuildingClass	Class for spawn
+	 * @param	BuildName	Build display name for clients
 	 */
-	void SpawnBuilding(TSubclassOf<ABaseBuildingActor> BuildingClass);
+	void SpawnBuilding(TSubclassOf<ABaseBuildingActor> BuildingClass, const FText& BuildName);
 	
 	/**
 	 *Add new single target actor in array
@@ -178,10 +177,6 @@ private:
 	
 	UPROPERTY(Replicated)
 	TArray<AActor*> TargetActors;
-
-	/** pawn data table for spawn pawn */
-	UPROPERTY()
-	TMap<EObjectTeam, UDataTable*> AISpawnDataTables;
 	
 	/** Mouse hit result with line trace from mouse position. Valid on owning client */
 	FHitResult MousePositionResult;

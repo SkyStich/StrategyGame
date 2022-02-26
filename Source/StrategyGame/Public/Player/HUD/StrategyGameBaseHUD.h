@@ -8,6 +8,8 @@
 #include "Player/Interfaces/MatchPlayerHUDInterface.h"
 #include "Player/PlayerController/SpectatorPlayerController.h"
 #include "Player/UI/ActionSlots/Base/ActionSpawnPawnSlotBase.h"
+#include "Player/UI/HealthStatistics/HealthStatisticsBase.h"
+
 
 #include "StrategyGameBaseHUD.generated.h"
 
@@ -33,7 +35,14 @@ public:
 	bool GetGroupSelectionActive() const { return bGroupSelectionActive; }
 
 	UBaseMatchWidget* GetMainWidget() const { return MainWidget; }
-	TAssetSubclassOf<UActionSpawnPawnSlotBase> GetActionSpawnPawnSlotClass() const { return ActionSpawnPawnSlotClass; }	
+	TAssetSubclassOf<UActionSpawnPawnSlotBase> GetActionSpawnPawnSlotClass() const { return ActionSpawnPawnSlotClass; }
+
+	/** Set visibility to ESlateVisible::Visibility */
+	virtual void ShowHealthStatistics(AActor* Target);
+
+	/** Set visibility to ESlateVisible::collapsed */
+	virtual void HiddenHealthStatistics();
+	
 protected:
 
 	virtual void BeginPlay() override;
@@ -41,6 +50,9 @@ protected:
 
 	virtual void CreateMainWidget();
 	virtual void RemoveMainWidget();
+
+	virtual void CreateHealthStatisticsWidget();
+	virtual void RemoveHealthStatisticsWidget();
 
 	/** get spectator controller helper */
 	ASpectatorPlayerController* GetSpectatorPlayerController();
@@ -52,6 +64,12 @@ protected:
 
 	UPROPERTY()
 	TAssetSubclassOf<UBaseMatchWidget> MainWidgetClass;
+
+	UPROPERTY()
+	TAssetSubclassOf<UHealthStatisticsBase> HealthStatisticsWidgetClass;
+
+	UPROPERTY()
+	UHealthStatisticsBase* HealthStatisticsWidget;
 
 	UPROPERTY()
 	UBaseMatchWidget* MainWidget;
