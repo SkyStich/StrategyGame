@@ -18,7 +18,10 @@ class UBaseMatchWidget;
 UCLASS(BlueprintType)
 class STRATEGYGAME_API AStrategyGameBaseHUD : public AHUD, public IMatchPlayerHUDInterface
 {
-	GENERATED_BODY() 
+	GENERATED_BODY()
+
+	UFUNCTION()
+	void OnActionWithObjectReleased();
 
 public:
 

@@ -21,7 +21,7 @@ public:
 	ABaseAIController();
 
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
-
+	virtual void Tick(float DeltaTime) override;
 	virtual void MoveToGiveOrder(const FVector& Location, AActor* NewTargetActor);
 	
 protected:
@@ -30,6 +30,7 @@ protected:
 	virtual void BeginPlay() override;
 	virtual void OnSinglePerceptionUpdated(AActor* Actor, FAIStimulus  Stimulus) {}
 	virtual void OnMoveCompleted(FAIRequestID RequestID, const FPathFollowingResult& Result) override;
+	virtual void OnPossess(APawn* InPawn) override;
 
 protected:
 
@@ -39,8 +40,6 @@ protected:
 	UPROPERTY()
 	bool bOrderExecuted;
 	
-private:
-
 	UPROPERTY(EditDefaultsOnly, meta = (AllowPrivateAccess = "true"))
 	UAISenseConfig_Sight* SightConfig;
 };

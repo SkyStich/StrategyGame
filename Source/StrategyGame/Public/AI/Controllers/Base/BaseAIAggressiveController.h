@@ -36,6 +36,8 @@ public:
 
 	ABaseAIAggressiveController(const FObjectInitializer& ObjectInitializer);
 	virtual void MoveToGiveOrder(const FVector& Location, AActor* NewTargetActor) override;
+	virtual void StartChasingTarget();
+	virtual void StopChasingTarget();
 
 protected:
 

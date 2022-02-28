@@ -3,6 +3,7 @@
 
 #include "AI/Controllers/Base/BaseAIAggressiveController.h"
 #include "AI/Pawns/Base/BaseAggressivePawn.h"
+#include "Perception/AISenseConfig_Sight.h"
 //#include "Perception/AIPerceptionComponent.h"
 
 ABaseAIAggressiveController::ABaseAIAggressiveController(const FObjectInitializer& ObjectInitializer)
@@ -24,19 +25,23 @@ void ABaseAIAggressiveController::BeginPlay()
 
 void ABaseAIAggressiveController::OnSinglePerceptionUpdated(AActor* Actor, FAIStimulus Stimulus)
 {
-	if(bOrderExecuted) return;
+	if(!Actor || bOrderExecuted) return;
 	if(!Actor->GetClass()->ImplementsInterface(UFindObjectTeamInterface::StaticClass())) return;
 	
 	if(Stimulus.WasSuccessfullySensed())
 	{
 		if(TargetActor)
 		{
-			if(TargetActor == Actor) GetWorld()->GetTimerManager().ClearTimer(LoseTargetHandle);
+			if(TargetActor == Actor)
+			{
+				GetWorld()->GetTimerManager().ClearTimer(LoseTargetHandle);
+				StartCheckDistanceForAttack();
+			}
 			return;
 		}
 		if(IFindObjectTeamInterface::Execute_FindObjectTeam(Actor) == GetAggressivePawn()->GetTeam()) return;
 		
-		TargetActor = Actor;
+		MoveToGiveOrder(Actor->GetActorLocation(), Actor);
 		StartCheckDistanceForAttack();
  
 		return;
@@ -68,7 +73,8 @@ void ABaseAIAggressiveController::StartCheckDistanceForAttack()
 { 
 	if(GetLocalRole() != ROLE_Authority || !TargetActor) return;
 
-	GetWorld()->GetTimerManager().SetTimer(CheckDistanceForAttackHandle, this, &ABaseAIAggressiveController::CheckDistanceForAttack, 2.f, true);
+	CheckDistanceForAttack();
+	GetWorld()->GetTimerManager().SetTimer(CheckDistanceForAttackHandle, this, &ABaseAIAggressiveController::CheckDistanceForAttack, 0.5f, true);
 }
 
 void ABaseAIAggressiveController::CheckDistanceForAttack()
@@ -101,9 +107,24 @@ void ABaseAIAggressiveController::MoveToGiveOrder(const FVector& Location, AActo
 
 	if(NewTargetActor)
 	{
-		GEngine->AddOnScreenDebugMessage(-1, 2.f, FColor::Green, TEXT("Target is valid"));
-		StartCheckDistanceForAttack();
+		float const Distance = FVector::Dist(GetPawn()->GetActorLocation(), NewTargetActor->GetActorLocation());
+		if(Distance <= SightConfig->SightRadius)
+		{
+			StartCheckDistanceForAttack();
+		}
 	}
 }
 
+void ABaseAIAggressiveController::StartChasingTarget()
+{
+	if(!TargetActor) return;
+
+	MoveToActor(TargetActor, 15);
+	StartCheckDistanceForAttack();
+}
+
+void ABaseAIAggressiveController::StopChasingTarget()
+{
+	
+}
 

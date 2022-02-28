@@ -21,7 +21,7 @@ public:
 
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 	virtual void StartAttackTargetActor(AActor* Target);
-	virtual void StopAttack();
+	virtual void StopAttack() override;
 
 private:
 

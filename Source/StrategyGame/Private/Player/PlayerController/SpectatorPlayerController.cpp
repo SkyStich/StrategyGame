@@ -22,9 +22,8 @@ ASpectatorPlayerController::ASpectatorPlayerController(const FObjectInitializer&
 	bShowMouseCursor =  true;
 	bIgnoreHighlighted = false;
 	bReplicates = true;
-	NetUpdateFrequency = 1.f;
+	NetUpdateFrequency = 10.f;
 	HighlightedTag = "IsTarget";
-
 	ResourcesActorComponent = CreateDefaultSubobject<UResourcesActorComponent>(TEXT("ResourcesActorComponent"));
 
 	static ConstructorHelpers::FObjectFinder<UMaterialInstance> HighlightedInstanceFinder(TEXT("/Game/Assets/SelectingObject/Materials/PP_Outliner_Inst"));
@@ -173,7 +172,7 @@ void ASpectatorPlayerController::UpdateHighlightedActor()
 	}
 	
 	/** if the object is no longer selected, clear the static variable and turn it off custom depth  */
-	if(HighlightedActor)
+	if(IsValid(HighlightedActor))
 	{
 		if(!HighlightedActor->Tags.Contains(HighlightedTag)) UpdateCustomDepthFromActor(HighlightedActor, false);
 		HighlightedActor = nullptr;	
@@ -208,6 +207,7 @@ void ASpectatorPlayerController::AddSingleTargetActor(AActor* NewTarget)
 	if(NewTarget)
 	{
 		TargetActors.Add(NewTarget);
+		BindOnTargetActorDeath(NewTarget);
 	}
 	
 	TargetActorUpdated.Broadcast(NewTarget);
@@ -220,6 +220,7 @@ void ASpectatorPlayerController::AddTargetPawns(const TArray<ABaseAIPawn*>& NewT
 		for(const auto& ByArray : TargetActors)
 		{
 			ByArray->Tags.Remove(HighlightedTag);
+			UnBindTargetActorDeath(ByArray);
 			UpdateCustomDepthFromActor(ByArray, false);
 		}
 	}
@@ -234,7 +235,7 @@ void ASpectatorPlayerController::Server_AddTargetPawns_Implementation(const TArr
 
 	for(auto& ByArray : NewTargets)
 	{
-		TargetActors.Add(ByArray);
+		AddSingleTargetActor(ByArray);
 	}
 }
 
@@ -244,16 +245,28 @@ void ASpectatorPlayerController::ClearTargetActors()
 		
 	for(auto ByArray : TargetActors)
 	{
-		TargetActors.Remove(ByArray);
+		RemoveActorFromTarget(ByArray);
 	}
+}
+
+void ASpectatorPlayerController::RemoveActorFromTarget(AActor* Actor)
+{
+	if(GetLocalRole() != ROLE_Authority) return;
+	UnBindTargetActorDeath(Actor);
+	TargetActors.Remove(Actor);
+}
+
+void ASpectatorPlayerController::RemoveGroupSelection(AStrategyGameBaseHUD* StrategyHUD)
+{
+	if(!GetMousePositionCustom().Equals(StrategyHUD->StartGroupSelectionPosition, 25.f)) StrategyHUD->GroupSelectingReleased();
+	StrategyHUD->StartGroupSelectionPosition = FVector2D::ZeroVector;
+	StrategyHUD->SetGroupSelectionActive(false);
 }
 
 void ASpectatorPlayerController::OnSelectActorReleased()
 {
 	auto StrategyHUD = GetStrategyGameBaseHUD();
-	if(!GetMousePositionCustom().Equals(StrategyHUD->StartGroupSelectionPosition, 25.f)) StrategyHUD->GroupSelectingReleased();
-	StrategyHUD->StartGroupSelectionPosition = FVector2D::ZeroVector;
-	StrategyHUD->SetGroupSelectionActive(false);
+	RemoveGroupSelection(StrategyHUD);
 	StrategyHUD->HiddenHealthStatistics();
 	
 	FHitResult OutHit;
@@ -264,7 +277,7 @@ void ASpectatorPlayerController::OnSelectActorReleased()
 		auto const TempOutActorClass = OutHit.GetActor()->GetClass();
 		if(TempOutActorClass->ImplementsInterface(UHighlightedInterface::StaticClass()) && TempOutActorClass->ImplementsInterface(UFindObjectTeamInterface::StaticClass()))
 		{
-			if(!TargetActors.Contains(OutHit.GetActor()) && Execute_FindObjectTeam(OutHit.GetActor()) == GetStrategyPlayerState()->GetPlayerTeam())
+			if(!TargetActors.Contains(OutHit.GetActor()))
 			{
 				/** remove custom depth on old target actors */
 				if(TargetActors.Num() > 0)
@@ -273,10 +286,20 @@ void ASpectatorPlayerController::OnSelectActorReleased()
 					{
 						ByArray->Tags.Remove(HighlightedTag);
 						UpdateCustomDepthFromActor(ByArray, false);
+						UnBindTargetActorDeath(ByArray);
 					}
 				}
 				OutHit.GetActor()->Tags.Add(HighlightedTag);
+				BindOnTargetActorDeath(OutHit.GetActor());
+
 				Server_SingleSelectActor(OutHit.TraceStart, OutHit.TraceEnd);
+
+				/** if hit actor != local player team show custom depth and health statistics */
+				if(Execute_FindObjectTeam(OutHit.GetActor()) != GetStrategyPlayerState()->GetPlayerTeam())
+				{
+					UpdateCustomDepthFromActor(OutHit.GetActor(), true);
+					StrategyHUD->ShowHealthStatistics(OutHit.GetActor());
+				}
 			}
 		}
 	}
@@ -314,14 +337,16 @@ void ASpectatorPlayerController::Server_SingleSelectActor_Implementation(const F
 			return;
 		}
 		
-		if(!TargetActors.Contains(OutHit.GetActor()) && Execute_FindObjectTeam(OutHit.GetActor()) == GetStrategyPlayerState()->GetPlayerTeam())
+		if(!TargetActors.Contains(OutHit.GetActor()))
 		{
 			if(TargetActors.Num() > 0)
 			{
 				ClearTargetActors();
 			}
 			AddSingleTargetActor(OutHit.GetActor());
-			Client_CallHighlightedOnSelectObject(OutHit.GetActor());
+
+			if(Execute_FindObjectTeam(OutHit.GetActor()) == GetStrategyPlayerState()->GetPlayerTeam())
+				Client_CallHighlightedOnSelectObject(OutHit.GetActor());
 		}
 	}
 }
@@ -341,6 +366,7 @@ void ASpectatorPlayerController::ClearTargetAllActorsDepth()
 		for(const auto& ByArray : TargetActors)
 		{
 			ByArray->Tags.Remove(HighlightedTag);
+			UnBindTargetActorDeath(ByArray);
 			UpdateCustomDepthFromActor(ByArray, false);
 		}
 	}
@@ -436,13 +462,14 @@ void ASpectatorPlayerController::MoveTargetPawnsPressed()
 	
 	for(const auto& ByArray : TargetActors)
 	{
+		if(!ByArray->Tags.Contains(HighlightedTag)) continue;
+		
 		if(ByArray->GetClass()->ImplementsInterface(UGiveOrderToTargetPawns::StaticClass()))
 		{
 			IGiveOrderToTargetPawns::Execute_GiveOrderToTargetPawn(ByArray, OutHit.Location, OutHit.GetActor());
 		}
 	}
-	if(GetNetMode() != NM_Standalone)
-		Server_MoveTargetPawns(OutHit.TraceStart, OutHit.TraceEnd);	
+	if(GetNetMode() != NM_Standalone) Server_MoveTargetPawns(OutHit.TraceStart, OutHit.TraceEnd);
 }
 
 void ASpectatorPlayerController::Server_MoveTargetPawns_Implementation(const FVector& TraceStart, const FVector& TraceEnd)
@@ -493,3 +520,37 @@ void ASpectatorPlayerController::SpawnPreBuildAction(TSubclassOf<ABaseBuildingAc
 		}
 	}
 }
+
+void ASpectatorPlayerController::OnTargetDeath(AActor* Actor)
+{
+	if(GetLocalRole() == ROLE_Authority)
+	{
+		RemoveActorFromTarget(Actor);
+		return;
+	}
+	UpdateCustomDepthFromActor(Actor, false);
+	Actor->Tags.Remove(HighlightedTag);
+	auto StrategyHUD = GetStrategyGameBaseHUD();
+	if(!StrategyHUD) return;
+	
+	if(TargetActors.Num() <= 1)
+	{
+		StrategyHUD->ClearActionGrid();
+		StrategyHUD->HiddenHealthStatistics();
+	}
+}
+
+void ASpectatorPlayerController::BindOnTargetActorDeath(AActor* Target)
+{
+	if(!Target) return;
+	UObjectHealthComponent* HealthComponent = Target->FindComponentByClass<UObjectHealthComponent>();
+	if(HealthComponent) HealthComponent->OnHealthEnded.AddDynamic(this, &ASpectatorPlayerController::OnTargetDeath);
+}
+
+void ASpectatorPlayerController::UnBindTargetActorDeath(AActor* Target)
+{
+	if(!Target) return;
+	UObjectHealthComponent* HealthComponent = Target->FindComponentByClass<UObjectHealthComponent>();
+	if(HealthComponent) HealthComponent->OnHealthEnded.Remove(this, "OnTargetDeath");
+}
+

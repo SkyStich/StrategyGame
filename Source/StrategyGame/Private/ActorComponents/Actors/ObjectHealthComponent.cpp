@@ -13,7 +13,7 @@ UObjectHealthComponent::UObjectHealthComponent()
 	CurrentHealth = 100;
 	RegenerationValuePerSec = 10.f;
 	RegenerationTime = 1.f;
-	bDeath = true;
+	bDeath = false;
 
 	SetIsReplicatedByDefault(true);
 }
@@ -23,6 +23,7 @@ void UObjectHealthComponent::GetLifetimeReplicatedProps(TArray<FLifetimeProperty
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 
 	DOREPLIFETIME(UObjectHealthComponent, CurrentHealth);
+	DOREPLIFETIME(UObjectHealthComponent, bDeath);
 	DOREPLIFETIME_CONDITION(UObjectHealthComponent, MaxHealth, COND_InitialOnly);
 }
 
@@ -97,5 +98,5 @@ void UObjectHealthComponent::OnRep_CurrentHealth()
 
 void UObjectHealthComponent::OnRep_IsDeath()
 {
-	OnHealthEnded.Broadcast();
+	OnHealthEnded.Broadcast(GetOwner());
 }

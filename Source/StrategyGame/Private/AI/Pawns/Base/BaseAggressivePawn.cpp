@@ -4,6 +4,7 @@
 #include "AI/Pawns/Base/BaseAggressivePawn.h"
 #include "Net/UnrealNetwork.h"
 #include "AI/Controllers/Base/BaseAIAggressiveController.h"
+#include "DrawDebugHelpers.h"
 #include "Kismet/GameplayStatics.h"
 
 ABaseAggressivePawn::ABaseAggressivePawn(const FObjectInitializer& ObjectInitializer)
@@ -11,7 +12,7 @@ ABaseAggressivePawn::ABaseAggressivePawn(const FObjectInitializer& ObjectInitial
 	AIControllerClass = ABaseAIAggressiveController::StaticClass();
 	bAttacking = false;
 
-	SetAttackData(FAggressiveAttackData(280.f, 10.f, 1.f));
+	SetAttackData(FAggressiveAttackData(780.f, 10.f, 1.f));
 	
 	WeaponMesh = ObjectInitializer.CreateDefaultSubobject<USkeletalMeshComponent>(this, TEXT("WeaponSkeletalMesh"));
 	WeaponMesh->SetupAttachment(GetMesh(), "SKT_WeaponPoint");
@@ -27,7 +28,7 @@ void ABaseAggressivePawn::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& 
 void ABaseAggressivePawn::StartAttackTargetActor(AActor* Target)
 {
 	if(GetLocalRole() != ROLE_Authority || bAttacking || !Target) return;
-
+	GetController()->StopMovement();
 	bAttacking = true;
 	FTimerDelegate TimerDel;
 	TimerDel.BindUObject(this, &ABaseAggressivePawn::AttackTargetActor, Target);
@@ -41,7 +42,28 @@ void ABaseAggressivePawn::AttackTargetActor(AActor* Target)
 		StopAttack();
 		return;
 	}
+
 	UGameplayStatics::ApplyDamage(Target, GetAggressiveAttackData()->BaseDamage, GetController(), this, UDamageType::StaticClass());
+	
+	/** if target leave attack range stop attack and move to him */
+	float const Dist = FVector::Dist(Target->GetActorLocation(), GetActorLocation());
+	if(Dist >= AttackData.BaseDistanceForAttack)
+	{
+		StopAttack();
+		ABaseAIAggressiveController* AggressiveController = Cast<ABaseAIAggressiveController>(Controller);
+		if(AggressiveController)
+		{
+			AggressiveController->StartChasingTarget();
+		}
+		return;
+	}
+#if UE_EDITOR
+	/** line trace for visible attack location */
+
+	DrawDebugSphere(GetWorld(), GetActorLocation(), 15, 8.f, FColor::White, false, 1.f);
+	DrawDebugLine(GetWorld(), GetActorLocation(), Target->GetActorLocation(), FColor::Blue, false, 1.f);
+	DrawDebugSphere(GetWorld(), Target->GetActorLocation(), 15, 8.f, FColor::Red, false, 1.f);
+#endif
 }
 
 void ABaseAggressivePawn::StopAttack()

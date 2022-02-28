@@ -39,15 +39,21 @@ class STRATEGYGAME_API ABaseAIPawn : public ACharacter, public IHighlightedInter
 {
 	GENERATED_BODY()
 
+	UFUNCTION()
+	virtual void OnHealthEndedEvent(AActor* Actor);
+
 public:
 	// Sets default values for this pawn's properties
 	ABaseAIPawn();
 	
 	virtual void GiveOrderToTargetPawn_Implementation(const FVector& LocationToMove, AActor* ActorToMove) override;
 	virtual FText FindObjectName_Implementation() const override { return PawnName; }
+	virtual void StopAttack() {}
+	
 	void InitPawn(const FAIPawnData& PawnData);
 	void SetTeam(EObjectTeam Team)  { OwnerTeam = Team; }
 	void SetAttackData(const FAggressiveAttackData& Data) { AttackData = Data; }
+	
 	EObjectTeam GetTeam() const { return OwnerTeam; }
 	FAggressiveAttackData* GetAggressiveAttackData() { return &AttackData; }
 
@@ -65,6 +71,7 @@ public:
 protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
+	virtual void Tick(float DeltaTime) override;
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 	virtual EObjectTeam FindObjectTeam_Implementation() override { return OwnerTeam; }
 
@@ -76,10 +83,10 @@ protected:
 	UPROPERTY(BlueprintReadOnly)
 	UObjectHealthComponent* ObjectHealthComponent;
 
-private:
-
 	UPROPERTY()
 	FAggressiveAttackData AttackData;
+
+private:
 	
 	UPROPERTY(Replicated)
 	FName PawnRowName;

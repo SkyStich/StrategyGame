@@ -28,6 +28,10 @@ class STRATEGYGAME_API ASpectatorPlayerController : public APlayerController, pu
 	/** Helper for find spectator camera component from controlled pawn */
 	USpectatorCameraComponent* GetSpectatorCameraComponent();
 
+	void RemoveGroupSelection(AStrategyGameBaseHUD* StrategyHUD);
+	void BindOnTargetActorDeath(AActor* Target);
+	void UnBindTargetActorDeath(AActor* Target);
+
 	/** helper for find spectator player state */
 	AStrategyMatchPlayerState* GetStrategyPlayerState() const;
 
@@ -40,8 +44,11 @@ class STRATEGYGAME_API ASpectatorPlayerController : public APlayerController, pu
 	/** update highlight. call on tick */
 	void UpdateHighlightedActor();
 
-	/** Clear Target actor array and update custom depth */
+	/** Clear all Target actor array */
 	void ClearTargetActors();
+	
+	/** remove single actor from array */
+	void RemoveActorFromTarget(AActor* Actor);
 
 	/** return vector2D with Mouse position  */
 	FVector2D GetMousePositionCustom() const;
@@ -49,6 +56,9 @@ class STRATEGYGAME_API ASpectatorPlayerController : public APlayerController, pu
 	/** Call on select actor (left mouse button default) */
 	UFUNCTION()
 	void OnSelectActorReleased();
+	
+	UFUNCTION()
+	void OnTargetDeath(AActor* Actor);
 
 	UFUNCTION()
 	void OnActionWithObjectPressed();
@@ -62,7 +72,7 @@ class STRATEGYGAME_API ASpectatorPlayerController : public APlayerController, pu
 	UFUNCTION(Server, Unreliable)
 	void Server_ActionTargetPawn();
 
-	UFUNCTION(Server, Unreliable)
+	UFUNCTION(Server, Reliable)
 	void Server_MoveTargetPawns(const FVector& TraceStart, const FVector& TraceEnd);
 
 	UFUNCTION(Client, Unreliable)

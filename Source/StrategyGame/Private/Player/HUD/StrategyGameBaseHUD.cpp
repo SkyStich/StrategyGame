@@ -34,6 +34,17 @@ void AStrategyGameBaseHUD::BeginPlay()
 	CreateMainWidget();
 	CreateHealthStatisticsWidget();
 	GetOwningPlayerController()->GetOnNewPawnNotifier().AddUObject(this, &AStrategyGameBaseHUD::OnNewControlledPawn);
+
+	auto const Controller = Cast<ASpectatorPlayerController>(GetOwningPlayerController());
+	if(Controller)
+	{
+		Controller->OnActionWithObjectReleasedEvent.AddDynamic(this, &AStrategyGameBaseHUD::OnActionWithObjectReleased);
+	}
+}
+
+void AStrategyGameBaseHUD::OnActionWithObjectReleased()
+{
+
 }
 
 void AStrategyGameBaseHUD::GroupSelectingReleased()

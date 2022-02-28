@@ -6,7 +6,7 @@
 #include "Components/ActorComponent.h"
 #include "ObjectHealthComponent.generated.h"
 
-DECLARE_DYNAMIC_MULTICAST_DELEGATE(FHealthEnded);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FHealthEnded, AActor*, Actor);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FHealthChanged, int32, NewHealth);
 
 UCLASS( ClassGroup=(Custom), meta=(BlueprintSpawnableComponent) )
@@ -57,6 +57,9 @@ public:
 
 	UFUNCTION(BlueprintPure, Category = "HealthComponent")
 	int32 GetMaxObjectHealth() const { return MaxHealth; }
+
+	UFUNCTION(BlueprintPure, Category = "HealthComponent")
+	bool IsAlive() const { return !bDeath; }
 
 protected:
 	// Called when the game starts
