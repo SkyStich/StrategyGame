@@ -60,6 +60,7 @@ void UObjectHealthComponent::DecreaseCurrentHealth(int32 const Value)
 	{
 		GEngine->AddOnScreenDebugMessage(-1, 2.f, FColor::Blue, TEXT("DEAD!!!!"));
 		bDeath = true;
+		GetOwner()->SetCanBeDamaged(false);
 		OnRep_IsDeath();
 	}
 }

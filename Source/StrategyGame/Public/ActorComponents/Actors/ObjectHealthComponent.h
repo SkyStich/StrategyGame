@@ -4,13 +4,14 @@
 
 #include "CoreMinimal.h"
 #include "Components/ActorComponent.h"
+#include "Interfaces/HealthInterface.h"
 #include "ObjectHealthComponent.generated.h"
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FHealthEnded, AActor*, Actor);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FHealthChanged, int32, NewHealth);
 
 UCLASS( ClassGroup=(Custom), meta=(BlueprintSpawnableComponent) )
-class STRATEGYGAME_API UObjectHealthComponent : public UActorComponent
+class STRATEGYGAME_API UObjectHealthComponent : public UActorComponent, public IHealthInterface
 {
 	GENERATED_BODY()
 
@@ -43,6 +44,7 @@ public:
 	UObjectHealthComponent();
 
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
+	virtual bool IsObjectAlive_Implementation() override { return IsAlive(); }
 
 	/**
 	 * Set Max health value by default. Call on created object

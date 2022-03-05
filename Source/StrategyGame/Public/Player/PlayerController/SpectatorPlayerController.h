@@ -29,7 +29,17 @@ class STRATEGYGAME_API ASpectatorPlayerController : public APlayerController, pu
 	USpectatorCameraComponent* GetSpectatorCameraComponent();
 
 	void RemoveGroupSelection(AStrategyGameBaseHUD* StrategyHUD);
+
+	/** call when actor be add to target array
+	 *
+	 * @param Target Actor when be bind
+	 */
 	void BindOnTargetActorDeath(AActor* Target);
+
+	/** call when actor be remove from target array
+	 *
+	 * @param Target Actor when be remove from target array
+	 */
 	void UnBindTargetActorDeath(AActor* Target);
 
 	/** helper for find spectator player state */

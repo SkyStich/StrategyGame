@@ -82,7 +82,8 @@ void ABaseAIPawn::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifet
 void ABaseAIPawn::GiveOrderToTargetPawn_Implementation(const FVector& LocationToMove, AActor* ActorToMove)
 {
 	if(!ObjectHealthComponent->IsAlive()) return;
-	
+
+	StopAttack();
 	if(GetLocalRole() == ROLE_Authority)
 	{
 		auto const AIController = GetController<ABaseAIController>();

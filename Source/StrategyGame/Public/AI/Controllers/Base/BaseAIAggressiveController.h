@@ -25,7 +25,8 @@ protected:
 	virtual void StartLoseTimer();
 	virtual void StartCheckDistanceForAttack();
 	virtual void StopCheckDistanceForAttack();
-	
+
+	/** return true if can be attack with this distance */
 	UFUNCTION()
 	virtual void CheckDistanceForAttack();
 
@@ -38,6 +39,9 @@ public:
 	virtual void MoveToGiveOrder(const FVector& Location, AActor* NewTargetActor) override;
 	virtual void StartChasingTarget();
 	virtual void StopChasingTarget();
+
+	/** call if old target be killed or leave see point */
+	virtual void FindNewTarget();
 
 protected:
 

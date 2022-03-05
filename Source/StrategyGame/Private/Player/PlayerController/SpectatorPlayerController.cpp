@@ -243,7 +243,7 @@ void ASpectatorPlayerController::ClearTargetActors()
 {
 	if(GetLocalRole() != ROLE_Authority) return;
 		
-	for(auto ByArray : TargetActors)
+	for(const auto& ByArray : TargetActors)
 	{
 		RemoveActorFromTarget(ByArray);
 	}
@@ -289,6 +289,9 @@ void ASpectatorPlayerController::OnSelectActorReleased()
 						UnBindTargetActorDeath(ByArray);
 					}
 				}
+				/** return if actor can not be damage. (m.b. Actor is dead) */
+				if(!OutHit.GetActor()->CanBeDamaged()) return;
+				
 				OutHit.GetActor()->Tags.Add(HighlightedTag);
 				BindOnTargetActorDeath(OutHit.GetActor());
 
@@ -553,4 +556,3 @@ void ASpectatorPlayerController::UnBindTargetActorDeath(AActor* Target)
 	UObjectHealthComponent* HealthComponent = Target->FindComponentByClass<UObjectHealthComponent>();
 	if(HealthComponent) HealthComponent->OnHealthEnded.Remove(this, "OnTargetDeath");
 }
-

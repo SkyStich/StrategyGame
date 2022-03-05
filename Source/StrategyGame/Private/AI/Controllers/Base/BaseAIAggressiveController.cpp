@@ -4,7 +4,6 @@
 #include "AI/Controllers/Base/BaseAIAggressiveController.h"
 #include "AI/Pawns/Base/BaseAggressivePawn.h"
 #include "Perception/AISenseConfig_Sight.h"
-//#include "Perception/AIPerceptionComponent.h"
 
 ABaseAIAggressiveController::ABaseAIAggressiveController(const FObjectInitializer& ObjectInitializer)
 {
@@ -73,8 +72,7 @@ void ABaseAIAggressiveController::StartCheckDistanceForAttack()
 { 
 	if(GetLocalRole() != ROLE_Authority || !TargetActor) return;
 
-	CheckDistanceForAttack();
-	GetWorld()->GetTimerManager().SetTimer(CheckDistanceForAttackHandle, this, &ABaseAIAggressiveController::CheckDistanceForAttack, 0.5f, true);
+	GetWorld()->GetTimerManager().SetTimer(CheckDistanceForAttackHandle, this, &ABaseAIAggressiveController::CheckDistanceForAttack, 0.5f, true, 0);
 }
 
 void ABaseAIAggressiveController::CheckDistanceForAttack()
@@ -92,7 +90,9 @@ void ABaseAIAggressiveController::CheckDistanceForAttack()
 
 	if(Distance <= AggressivePawn->GetAggressiveAttackData()->BaseDistanceForAttack)
 	{
+		StopMovement();
 		AggressivePawn->StartAttackTargetActor(TargetActor);
+		StopCheckDistanceForAttack();
 	}
 }
 
@@ -104,7 +104,9 @@ void ABaseAIAggressiveController::StopCheckDistanceForAttack()
 void ABaseAIAggressiveController::MoveToGiveOrder(const FVector& Location, AActor* NewTargetActor)
 {
 	Super::MoveToGiveOrder(Location, NewTargetActor);
-
+	
+	StopCheckDistanceForAttack();
+	
 	if(NewTargetActor)
 	{
 		float const Distance = FVector::Dist(GetPawn()->GetActorLocation(), NewTargetActor->GetActorLocation());
@@ -125,6 +127,30 @@ void ABaseAIAggressiveController::StartChasingTarget()
 
 void ABaseAIAggressiveController::StopChasingTarget()
 {
-	
+	if(GetLocalRole() == ROLE_Authority)
+	{
+		StopMovement();
+		
+	}
 }
 
+void ABaseAIAggressiveController::FindNewTarget()
+{
+	TArray<AActor*> PerceivedActors;
+	PerceptionComponent->GetCurrentlyPerceivedActors(UAISense_Sight::StaticClass(), PerceivedActors);
+
+	if(PerceivedActors.Num() <= 0) return;
+
+	for(auto& ByArray : PerceivedActors)
+	{
+		if(!ByArray->CanBeDamaged()) continue;
+		if(!ByArray->GetClass()->ImplementsInterface(UFindObjectTeamInterface::StaticClass())) continue;
+
+		if(IFindObjectTeamInterface::Execute_FindObjectTeam(ByArray) == IFindObjectTeamInterface::Execute_FindObjectTeam(GetPawn())) continue;
+
+		TargetActor = ByArray;
+		MoveToActor(TargetActor, 15.f);
+		StartCheckDistanceForAttack();
+		return;
+	}
+}

@@ -35,6 +35,8 @@ ABaseBuildingActor::ABaseBuildingActor()
 	StaticMeshComponent = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("StaticMesh"));
 	StaticMeshComponent->SetCollisionResponseToChannel(ECC_Camera, ECR_Ignore);
 	StaticMeshComponent->SetupAttachment(RootComponent);
+	
+	ObjectHealthComponent = CreateDefaultSubobject<UObjectHealthComponent>(TEXT("ObjectHealthComponent"));
 
 	static ConstructorHelpers::FClassFinder<USpawnProgressSlotBase>SpawnProgressSlotFinder(TEXT("/Game/Blueprints/UI/SpawnProgress/W_SpawnProgressSlot"));
 	if(SpawnProgressSlotFinder.Succeeded()) SpawnProgressSlot = SpawnProgressSlotFinder.Class;
@@ -299,6 +301,7 @@ void ABaseBuildingActor::GenerateQueueSlots()
 
 void ABaseBuildingActor::HighlightedActor_Implementation(AStrategyGameBaseHUD* PlayerHUD)
 {
+	if(!ObjectHealthComponent->IsAlive()) return;
 	Server_Highlighted();
 	UDataTable* TempSpawnData = GetGameInstance()->GetSubsystem<UGameAIPawnSubsystem>()->GetPawnDataByTeam(OwnerTeam);
 	if(!TempSpawnData)

@@ -28,7 +28,7 @@ void ABaseAggressivePawn::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& 
 void ABaseAggressivePawn::StartAttackTargetActor(AActor* Target)
 {
 	if(GetLocalRole() != ROLE_Authority || bAttacking || !Target) return;
-	GetController()->StopMovement();
+	
 	bAttacking = true;
 	FTimerDelegate TimerDel;
 	TimerDel.BindUObject(this, &ABaseAggressivePawn::AttackTargetActor, Target);
@@ -44,6 +44,18 @@ void ABaseAggressivePawn::AttackTargetActor(AActor* Target)
 	}
 
 	UGameplayStatics::ApplyDamage(Target, GetAggressiveAttackData()->BaseDamage, GetController(), this, UDamageType::StaticClass());
+
+	/** if target can not have damage. m.b. Target is dead */
+	if(!Target->CanBeDamaged())
+	{
+		StopAttack();
+		ABaseAIAggressiveController* AggressiveController = Cast<ABaseAIAggressiveController>(Controller);
+		if(AggressiveController)
+		{
+			AggressiveController->FindNewTarget();
+		}
+		return;
+	}
 	
 	/** if target leave attack range stop attack and move to him */
 	float const Dist = FVector::Dist(Target->GetActorLocation(), GetActorLocation());

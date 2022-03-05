@@ -143,6 +143,9 @@ private:
 	UPROPERTY(BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
 	FTimerHandle SpawnPawnHandle;
 
+	UPROPERTY(VisibleDefaultsOnly, BlueprintReadOnly, Category = "HealthComponent", meta = (AllowPrivateAccess = "true"))
+	UObjectHealthComponent* ObjectHealthComponent;
+
 	/** true if build is highlighted */
 	bool bIsHighlighted;
 };
