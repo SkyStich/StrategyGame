@@ -96,7 +96,7 @@ class STRATEGYGAME_API ASpectatorPlayerController : public APlayerController, pu
 	* @param	BuildName	Build display name for clients
 	*/
 	UFUNCTION(Server, Reliable)
-    void Server_SpawnBuilding(TSubclassOf<ABaseBuildingActor> SpawnClass, const FVector& Location, const FText& BuildName);
+    void Server_SpawnBuilding(TSubclassOf<ABaseBuildingActor> SpawnClass, const FVector& Location, const FName& RowName);
 
 protected:
 
@@ -128,9 +128,10 @@ public:
 
 	/**
 	 * Spawn pre building actor for find spawn build location
-	 * @param BuildActor Build class for spawn 
+	 * @param BuildActor Build class for spawn
+	 * @param RowName Build row name
 	 */
-	void SpawnPreBuildAction(TSubclassOf<ABaseBuildingActor> BuildActor);
+	void SpawnPreBuildAction(TSubclassOf<ABaseBuildingActor> BuildActor, const FName& RowName);
 
 	/**
 	* Add resources value by resources type
@@ -153,9 +154,9 @@ public:
 	 * start spawn building logic
 	 *
 	 * @param	BuildingClass	Class for spawn
-	 * @param	BuildName	Build display name for clients
+	 * @param	RowName	Build row name for clients
 	 */
-	void SpawnBuilding(TSubclassOf<ABaseBuildingActor> BuildingClass, const FText& BuildName);
+	void SpawnBuilding(TSubclassOf<ABaseBuildingActor> BuildingClass, const FName& RowName);
 	
 	/**
 	 *Add new single target actor in array

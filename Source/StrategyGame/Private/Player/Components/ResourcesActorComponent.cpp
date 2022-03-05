@@ -10,6 +10,8 @@ UResourcesActorComponent::UResourcesActorComponent()
 	PrimaryComponentTick.bCanEverTick = false;
 
 	SetIsReplicatedByDefault(true);
+
+	ResourcesValue.Add(FResourcesData(EResourcesType::Food, 30));
 }
 
 
@@ -26,7 +28,7 @@ void UResourcesActorComponent::GetLifetimeReplicatedProps(TArray<FLifetimeProper
 	DOREPLIFETIME_CONDITION(UResourcesActorComponent, ResourcesValue, COND_OwnerOnly);
 }
 
-int32 UResourcesActorComponent::GetResourcesValueByKey(EResourcesType Type)
+int32 UResourcesActorComponent::GetResourcesValueByKey(const EResourcesType Type)
 {
 	auto const Resources = ResourcesValue.FindByPredicate([&]( FResourcesData Item ) -> bool { return Type == Item.Key; } );
 	return Resources ? Resources->Value : 0;
@@ -58,7 +60,7 @@ void UResourcesActorComponent::DecreaseResourcesValue(const EResourcesType Type,
 	{
 		if(ByArray.Key == Type)
 		{
-			ByArray.Value += Value;
+			ByArray.Value -= Value;
 			OnRep_ResourcesValues();
 			return;
 		}
@@ -83,4 +85,25 @@ void UResourcesActorComponent::Client_AddNewResourcesType_Implementation(EResour
 void UResourcesActorComponent::OnRep_ResourcesValues()
 {
 	OnResourcesUpdated.Broadcast();
+}
+
+bool UResourcesActorComponent::EnoughResources(const TArray<FResourcesData>& Value)
+{
+	if(Value.Num() > ResourcesValue.Num()) return false;
+
+	for(const auto& ByArray : Value)
+	{
+		/** if not contains need of resources type */
+		if(!ResourcesValue.ContainsByPredicate([&](FResourcesData Item) -> bool { return Item.Key == ByArray.Key; }))
+		{
+			return false;
+		}
+
+		/** if input resorces > current resources return false */
+		if(ByArray.Value > GetResourcesValueByKey(ByArray.Key))
+		{
+			return false;
+		}
+	}
+	return true;
 }

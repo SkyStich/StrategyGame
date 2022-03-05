@@ -73,10 +73,20 @@ public:
 	/**
 	 * Get current resources value by resources type
 	 *
-	 * @param	Type	resources type for add value
+	 * @param	Type	resources type for find
 	 */
 	UFUNCTION(BlueprintPure, Category = "Resources")
-	int32 GetResourcesValueByKey(EResourcesType Type);
+	int32 GetResourcesValueByKey(const EResourcesType Type);
+
+	/**
+	 * checks the incoming resources with the resources that belong to the player and if
+	 * the incoming resources are greater than or equal to what the player has
+	 * it will return the TRUE.
+	 * Returns FALSE if there are fewer resources or at least one position is missing or input value is empty
+	 *
+	 * @param Value resources for verification
+	 */
+	bool EnoughResources(const TArray<FResourcesData>& Value);
 
 	UFUNCTION(BlueprintPure, Category = "Resources")
 	TArray<FResourcesData> GetResourcesValues() const { return ResourcesValue; }

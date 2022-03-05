@@ -30,4 +30,7 @@ protected:
 	
 	UPROPERTY(BlueprintReadOnly, VisibleInstanceOnly, meta = (ExposeOnSpawn = "true"))
 	TArray<FResourcesData> ResourcesNeedToBuy;
+
+	UPROPERTY(BlueprintReadOnly, VisibleInstanceOnly, meta = (ExposeOnSpawn = "true"))
+	FName RowName;
 };

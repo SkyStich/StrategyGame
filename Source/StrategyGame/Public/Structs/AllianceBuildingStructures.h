@@ -9,9 +9,12 @@
 #include "AllianceBuildingStructures.generated.h"
 
 USTRUCT(BlueprintType)
-struct FAllianceBaseData : public FTableRowBase
+struct FBaseBuilderData : public FTableRowBase
 {
 	GENERATED_BODY()
+	
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
+	FText DisplayName;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
 	TArray<FResourcesData> ResourcesNeedToBuy;
@@ -21,7 +24,7 @@ struct FAllianceBaseData : public FTableRowBase
 };
 
 USTRUCT(BlueprintType)
-struct FAllianceBuildersData : public FAllianceBaseData
+struct FAllianceBuildersData : public FBaseBuilderData
 {
 	GENERATED_BODY()
 

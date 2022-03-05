@@ -21,9 +21,13 @@ public:
 	UGameAIPawnSubsystem();
 
 	UDataTable* GetPawnDataByTeam(EObjectTeam OwnerTeam);
+	UDataTable* GetBuilderDataByTeam(EObjectTeam OwnerTeam);
 
 private:
 
 	UPROPERTY()
 	TMap<EObjectTeam, UDataTable*> AISpawnDataTables;
+
+	UPROPERTY()
+	TMap<EObjectTeam, UDataTable*> BuilderDataTables;
 };

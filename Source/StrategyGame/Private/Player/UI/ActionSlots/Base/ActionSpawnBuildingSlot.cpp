@@ -8,9 +8,17 @@
 
 void UActionSpawnBuildingSlot::SpawnBuilding()
 {
+	UResourcesActorComponent* ResourcesActorComponent = GetOwningPlayer()->FindComponentByClass<UResourcesActorComponent>();
+	if(!ResourcesActorComponent) return;
+
+	if(!ResourcesActorComponent->EnoughResources(ResourcesNeedToBuy))
+	{
+		return;
+	}
+
 	auto const PC = Cast<ASpectatorPlayerController>(GetOwningPlayer());
 	if(PC)
 	{
-		PC->SpawnPreBuildAction(USyncLoadLibrary::SyncLoadClass<ABaseBuildingActor>(this, SpawnBuildClass));
+		PC->SpawnPreBuildAction(USyncLoadLibrary::SyncLoadClass<ABaseBuildingActor>(this, SpawnBuildClass), RowName);
 	}
 }

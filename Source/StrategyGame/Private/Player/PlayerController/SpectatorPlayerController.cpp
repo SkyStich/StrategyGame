@@ -8,6 +8,7 @@
 #include "AI/Controllers/Base/BaseBuilderAIController.h"
 #include "AI/Pawns/Base/BaseAIPawn.h"
 #include "Engine/PostProcessVolume.h"
+#include "GameInstance/Subsystems/GameAIPawnSubsystem.h"
 #include "Kismet/GameplayStatics.h"
 #include "Player/Components/SpectatorCameraComponent.h"
 #include "Player/Interfaces/HighlightedInterface.h"
@@ -382,15 +383,33 @@ void ASpectatorPlayerController::OnActionWithObjectPressed()
 	StrategyHUD->StartGroupSelectionPosition = GetMousePositionCustom();
 }
 
-void ASpectatorPlayerController::SpawnBuilding(TSubclassOf<ABaseBuildingActor> BuildingClass, const FText& BuildName)
+void ASpectatorPlayerController::SpawnBuilding(TSubclassOf<ABaseBuildingActor> BuildingClass, const FName& RowName)
 {
 	bIgnoreHighlighted = false;
 
-	Server_SpawnBuilding(BuildingClass, GetMousePositionResult().ImpactPoint, BuildName);
+	Server_SpawnBuilding(BuildingClass, GetMousePositionResult().ImpactPoint, RowName);
 }
 
-void ASpectatorPlayerController::Server_SpawnBuilding_Implementation(TSubclassOf<ABaseBuildingActor> SpawnClass, const FVector& Location, const FText& BuildName)
+void ASpectatorPlayerController::Server_SpawnBuilding_Implementation(TSubclassOf<ABaseBuildingActor> SpawnClass, const FVector& Location, const FName& RowName)
 {
+	/** check on have valid reosurces */
+	FBaseBuilderData* BuilderData = nullptr;
+	auto const Subsystem = GetGameInstance()->GetSubsystem<UGameAIPawnSubsystem>();
+	auto const BuilderDataTable = Subsystem->GetBuilderDataByTeam(GetStrategyPlayerState()->GetPlayerTeam());
+	if(BuilderDataTable)
+	{
+		FString const ContextString = FString("DT_BuilderData");
+		BuilderData = BuilderDataTable->FindRow<FBaseBuilderData>(RowName, ContextString);
+		if(BuilderData == nullptr) return;
+
+		if(!ResourcesActorComponent->EnoughResources(BuilderData->ResourcesNeedToBuy)) return;	
+	}
+
+	for(const auto& ByArray : BuilderData->ResourcesNeedToBuy)
+	{
+		ResourcesActorComponent->DecreaseResourcesValue(ByArray.Key, ByArray.Value);
+	}
+	
 	FActorSpawnParameters Param;
 	Param.Owner = this;
 	Param.Instigator = GetPawnOrSpectator();
@@ -401,7 +420,7 @@ void ASpectatorPlayerController::Server_SpawnBuilding_Implementation(TSubclassOf
 	{
 		Building->SetOwnerController(this);
 		Building->SetTeamOwner(GetStrategyPlayerState()->GetPlayerTeam());
-		Building->SetBuildName(BuildName);
+		Building->SetBuildName(BuilderData->DisplayName);
 		Building->FinishSpawning(FTransform(Location));
 	}
 }
@@ -498,7 +517,7 @@ void ASpectatorPlayerController::Server_MoveTargetPawns_Implementation(const FVe
 	}
 }
 
-void ASpectatorPlayerController::SpawnPreBuildAction(TSubclassOf<ABaseBuildingActor> BuildActor)
+void ASpectatorPlayerController::SpawnPreBuildAction(TSubclassOf<ABaseBuildingActor> BuildActor, const FName& RowName)
 {
 	if(!BuildActor) return;
 	
@@ -517,6 +536,7 @@ void ASpectatorPlayerController::SpawnPreBuildAction(TSubclassOf<ABaseBuildingAc
 			PreBuildingActor->GetStaticMeshComponent()->SetRelativeScale3D(SubobjectMesh->GetRelativeScale3D());
 			PreBuildingActor->SetBoxExtent(SubobjectBox->GetScaledBoxExtent());
 			PreBuildingActor->SetOwnerController(this);
+			PreBuildingActor->SetBuildRowName(RowName);
 			PreBuildingActor->SetBuildingActor(BuildActor);
 				
 			UGameplayStatics::FinishSpawningActor(PreBuildingActor, FTransform(FVector(0.f)));

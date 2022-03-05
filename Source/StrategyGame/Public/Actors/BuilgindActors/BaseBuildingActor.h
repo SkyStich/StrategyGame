@@ -91,6 +91,11 @@ public:
 	void SpawnPawn(const FName& Id);
 	void SetOwnerController(ASpectatorPlayerController* Controller);
 	void SetTeamOwner(EObjectTeam Team) { OwnerTeam = Team; }
+
+	/*  set build name
+	 *
+	 * @param Name Display name this building
+	 **/
 	void SetBuildName(const FText& Name) { BuildName = Name; }
 
 	UFUNCTION(Server, Unreliable)

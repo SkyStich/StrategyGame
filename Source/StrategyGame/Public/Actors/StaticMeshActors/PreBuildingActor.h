@@ -27,7 +27,7 @@ public:
 
 	void SetOwnerController(ASpectatorPlayerController* Controller);
 	void SetBuildingActor(TSubclassOf<ABaseBuildingActor> Class) { BuildingActorClass = Class; }
-	void SetBuildDisplayName(const FText& NewName) { BuildName = NewName; }
+	void SetBuildRowName(const FName& NewName) { RowName = NewName; }
 
 	UStaticMeshComponent* GetStaticMeshComponent() const { return MeshComponent; }
 	UBoxComponent* GetBoxCollision() const { return BoxCollision; }
@@ -47,7 +47,7 @@ private:
 	TSubclassOf<ABaseBuildingActor> BuildingActorClass;
 
 	UPROPERTY(meta = (ExposeOfSpawn = "true"))
-	FText BuildName;
+	FName RowName;
 
 	/**
 	 *  if true ignores one mouse click.
