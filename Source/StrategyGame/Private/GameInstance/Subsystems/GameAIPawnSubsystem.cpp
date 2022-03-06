@@ -8,7 +8,6 @@ UGameAIPawnSubsystem::UGameAIPawnSubsystem()
 	/** finder pawn data table */
 	static ConstructorHelpers::FObjectFinder<UDataTable> AISpawnDataTableFinder(TEXT("/Game/Blueprints/DataTables/DT_AlliancePawnData"));
     if(AISpawnDataTableFinder.Succeeded()) AISpawnDataTables.Add(EObjectTeam::TeamA, AISpawnDataTableFinder.Object);
-   
 
 	/** finder builder data table */
 	static ConstructorHelpers::FObjectFinder<UDataTable> BuilderDataFinder(TEXT("/Game/Blueprints/DataTables/DT_AllianceBuilderData"));

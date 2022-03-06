@@ -60,8 +60,12 @@ class STRATEGYGAME_API ABaseBuildingActor : public AActor, public IHighlightedIn
 	UFUNCTION(Server, Unreliable)
 	void Server_UnHighlighted();
 
+	/** remove object from queue
+	 *
+	 * @param QueueId Id in queue (not row name in data table)
+	 */
 	UFUNCTION(Server, Unreliable)
-	void Server_RemoveItemFromQueue(const FName& Id);
+	void Server_RemoveItemFromQueue(const FName& QueueId);
 
 	UFUNCTION(Client, Unreliable)
 	void Client_OnSpawnFinished(const FName& Key);
@@ -91,6 +95,8 @@ public:
 	void SpawnPawn(const FName& Id);
 	void SetOwnerController(ASpectatorPlayerController* Controller);
 	void SetTeamOwner(EObjectTeam Team) { OwnerTeam = Team; }
+	
+	ASpectatorPlayerController* GetOwnerController() const { return OwnerPlayerController; }
 
 	/*  set build name
 	 *
@@ -108,7 +114,6 @@ public:
 protected:
 
 	virtual void BeginPlay() override;
-	ASpectatorPlayerController* GetOwnerController() const { return OwnerPlayerController; }
 
 	/** generate queue slots from current queue */
 	UFUNCTION(BlueprintCallable)

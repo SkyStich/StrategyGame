@@ -427,20 +427,14 @@ void ASpectatorPlayerController::Server_SpawnBuilding_Implementation(TSubclassOf
 
 void ASpectatorPlayerController::AddResourcesByType(const EResourcesType Type, const int32 Value)
 {
-	if(Value > 0)
-	{
-		ResourcesActorComponent->IncreaseResourcesValue(Type, Value);
-		ForceNetUpdate();
-	}
+	ResourcesActorComponent->IncreaseResourcesValue(Type, abs(Value));
+	ForceNetUpdate();
 }
 
 void ASpectatorPlayerController::DecreaseResourcesByType(const EResourcesType Type, const int32 Value)
 {
-	if(Value < 0)
-	{
-		ResourcesActorComponent->DecreaseResourcesValue(Type, Value);
-		ForceNetUpdate();
-	}
+	ResourcesActorComponent->DecreaseResourcesValue(Type, abs(Value));
+	ForceNetUpdate();
 }
 
 void ASpectatorPlayerController::OnActionTargetPawn()

@@ -127,14 +127,25 @@ void ABaseBuildingActor::OnSpawnComplete()
 
 void ABaseBuildingActor::SpawnPawn(const FName& Id)
 {
-	if(QueueOfSpawn.Num() >= 9) return;	
+	if(QueueOfSpawn.Num() >= 9 || !GetOwnerController()) return;	
+	
 	Server_SpawnPawn(Id);
 	StartSpawnTimer(Id);
 }
 
 void ABaseBuildingActor::Server_SpawnPawn_Implementation(const FName& Key)
 {
-	StartSpawnPawn(Key);
+	auto const AISubsystem = GetGameInstance()->GetSubsystem<UGameAIPawnSubsystem>();
+	UDataTable* AIDataTable = AISubsystem->GetPawnDataByTeam(OwnerTeam);
+	FAIPawnData* AIData = AIDataTable->FindRow<FAIPawnData>(Key, TEXT("AIPawnDataTable"));
+	if(GetOwnerController()->GetResourcesActorComponent()->EnoughResources(AIData->ResourcesNeedToBuy))
+	{
+		for(const auto& ByArray : AIData->ResourcesNeedToBuy)
+		{
+			GetOwnerController()->DecreaseResourcesByType(ByArray.Key, ByArray.Value);
+		}
+		StartSpawnPawn(Key);
+	}
 }
 
 void ABaseBuildingActor::StartSpawnPawn(const FName& Key)
@@ -290,7 +301,7 @@ void ABaseBuildingActor::GenerateQueueSlots()
 		auto SlotWidget = CreateWidget<USpawnProgressSlotBase>(OwnerPlayerController, SpawnProgressSlot);
 		if(SlotWidget)
 		{
-			SlotWidget->SetSpawnTime(ByArray.Value.TimeBeforeSpawn);
+			SlotWidget->SetSpawnTime(TempMaxTime);
 			SlotWidget->SetId(ByArray.QueueId);
 			SlotWidget->SetBuildOwner(this);
 			SlotWidget->SetIcon(USyncLoadLibrary::SyncLoadTexture(this, ByArray.Value.Icon));
@@ -360,6 +371,7 @@ void ABaseBuildingActor::RemoveSlotFromQueue(USpawnProgressSlotBase* SlotForRemo
 {
 	int32 const RemoveIndex = QueueOfSpawn.IndexOfByPredicate([&](FQueueData Item) -> bool { return Item.QueueId == SlotForRemove->GetId(); });
 	bool const IsFrontSlot = !QueueOfSpawn.IsValidIndex(RemoveIndex - 1);
+	
 	QueueOfSpawn.RemoveAll([&](FQueueData Item) -> bool { return Item.QueueId == SlotForRemove->GetId(); });
 	if(IsFrontSlot)
 	{
@@ -369,16 +381,26 @@ void ABaseBuildingActor::RemoveSlotFromQueue(USpawnProgressSlotBase* SlotForRemo
 	Server_RemoveItemFromQueue(SlotForRemove->GetId());
 }
 
-void ABaseBuildingActor::Server_RemoveItemFromQueue_Implementation(const FName& Id)
+void ABaseBuildingActor::Server_RemoveItemFromQueue_Implementation(const FName& QueueId)
 {
-	int32 const RemoveIndex = QueueOfSpawn.IndexOfByPredicate([&](FQueueData Item) -> bool { return Item.QueueId == Id; });
+	int32 const RemoveIndex = QueueOfSpawn.IndexOfByPredicate([&](FQueueData Item) -> bool { return Item.QueueId == QueueId; });
+	if(!QueueOfSpawn.IsValidIndex(RemoveIndex)) return;
+	
+	FQueueData* Finder = QueueOfSpawn.FindByPredicate([&](FQueueData Item) -> bool { return Item.QueueId == QueueId; });
+	if(!Finder) return;
+	for(const auto& ByArray : Finder->Value.ResourcesNeedToBuy)
+	{
+		GetOwnerController()->AddResourcesByType(ByArray.Key, ByArray.Value);
+	}
+
+	/** if objcet front in queue */
 	if(!QueueOfSpawn.IsValidIndex(RemoveIndex - 1))
 	{
-		QueueOfSpawn.RemoveAll([&](FQueueData Item) -> bool { return Item.QueueId == Id; });
+		QueueOfSpawn.RemoveAt(RemoveIndex);
 		RefreshQueue();
 		return;
 	}
-	QueueOfSpawn.RemoveAll([&](FQueueData Item) -> bool { return Item.QueueId == Id; });
+	QueueOfSpawn.RemoveAt(RemoveIndex);
 }
 
 void ABaseBuildingActor::Server_Highlighted_Implementation()

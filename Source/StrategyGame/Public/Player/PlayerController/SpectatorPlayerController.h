@@ -115,6 +115,8 @@ public:
 	virtual void SetupInputComponent() override;
 	virtual EObjectTeam FindObjectTeam_Implementation() override;
 
+	UResourcesActorComponent* GetResourcesActorComponent() const { return ResourcesActorComponent;}
+
 	/** return line trace result with current mouse position */
 	const FHitResult& GetMousePositionResult() const { return MousePositionResult; }
 
