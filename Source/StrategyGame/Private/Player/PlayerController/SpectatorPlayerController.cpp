@@ -257,17 +257,9 @@ void ASpectatorPlayerController::RemoveActorFromTarget(AActor* Actor)
 	TargetActors.Remove(Actor);
 }
 
-void ASpectatorPlayerController::RemoveGroupSelection(AStrategyGameBaseHUD* StrategyHUD)
-{
-	if(!GetMousePositionCustom().Equals(StrategyHUD->StartGroupSelectionPosition, 25.f)) StrategyHUD->GroupSelectingReleased();
-	StrategyHUD->StartGroupSelectionPosition = FVector2D::ZeroVector;
-	StrategyHUD->SetGroupSelectionActive(false);
-}
-
 void ASpectatorPlayerController::OnSelectActorReleased()
 {
 	auto StrategyHUD = GetStrategyGameBaseHUD();
-	RemoveGroupSelection(StrategyHUD);
 	StrategyHUD->HiddenHealthStatistics();
 	
 	FHitResult OutHit;

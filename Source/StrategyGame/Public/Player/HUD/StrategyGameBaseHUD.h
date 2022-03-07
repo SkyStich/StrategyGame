@@ -89,6 +89,7 @@ protected:
 private:
 
 	bool bGroupSelectionActive;
+	bool bGroupSelection;
 
 public:
 	

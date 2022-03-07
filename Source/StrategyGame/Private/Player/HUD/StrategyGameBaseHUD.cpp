@@ -13,6 +13,7 @@
 AStrategyGameBaseHUD::AStrategyGameBaseHUD()
 {
 	bGroupSelectionActive = false;
+	bGroupSelection = false;
 	
 	static ConstructorHelpers::FClassFinder<UBaseMatchWidget>MainWidgetClassFinder(TEXT("/Game/Blueprints/UI/MainWidget/W_MainMatchWidget"));
 	if(MainWidgetClassFinder.Succeeded()) MainWidgetClass = MainWidgetClassFinder.Class;
@@ -44,7 +45,11 @@ void AStrategyGameBaseHUD::BeginPlay()
 
 void AStrategyGameBaseHUD::OnActionWithObjectReleased()
 {
-
+	float Ox, Oy;
+	GetOwningPlayerController()->GetMousePosition(Ox, Oy);
+	
+	if(!FVector2D(Ox, Oy).Equals(StartGroupSelectionPosition, 25.f)) bGroupSelection = true;
+	else SetGroupSelectionActive(false);
 }
 
 void AStrategyGameBaseHUD::GroupSelectingReleased()
@@ -53,7 +58,10 @@ void AStrategyGameBaseHUD::GroupSelectingReleased()
 	GetOwningPlayerController()->GetMousePosition(Ox, Oy);
 	
 	TArray<ABaseAIPawn*> OutActors;
-	if(!GetActorsInSelectionRectangle(StartGroupSelectionPosition, FVector2D(Ox, Oy), OutActors)) return;
+	if(!GetActorsInSelectionRectangle(StartGroupSelectionPosition, FVector2D(Ox, Oy), OutActors))
+	{
+		return;
+	}
 	
 	ASpectatorPlayerController* SpectatorController = GetSpectatorPlayerController();
 	EObjectTeam const OwnerTeam = IFindObjectTeamInterface::Execute_FindObjectTeam(GetOwningPlayerController()); 
@@ -96,6 +104,14 @@ void AStrategyGameBaseHUD::DrawHUD()
 
 		/** Draw bot line */
 		DrawLine(StartX, Oy, Ox, Oy, FColor::Black, 0.f);
+
+		if(bGroupSelection)
+		{
+			bGroupSelection = false;
+			GroupSelectingReleased();
+			SetGroupSelectionActive(false);
+			StartGroupSelectionPosition = FVector2D::ZeroVector;
+		}
 	}
 }
 
