@@ -2,6 +2,8 @@
 
 
 #include "Player/HUD/StrategyGameBaseHUD.h"
+
+#include "AI/Pawns/Base/BaseAggressivePawn.h"
 #include "Player/UI/MathWidgetBase/BaseMatchWidget.h"
 #include "UObject/ConstructorHelpers.h"
 #include "Blueprint/UserWidget.h"
@@ -64,7 +66,8 @@ void AStrategyGameBaseHUD::GroupSelectingReleased()
 	}
 	
 	ASpectatorPlayerController* SpectatorController = GetSpectatorPlayerController();
-	EObjectTeam const OwnerTeam = IFindObjectTeamInterface::Execute_FindObjectTeam(GetOwningPlayerController()); 
+	EObjectTeam const OwnerTeam = IFindObjectTeamInterface::Execute_FindObjectTeam(GetOwningPlayerController());
+	TArray<ABaseAIPawn*> AggressivePawnArray;
 	if(SpectatorController)
 	{
 		for(auto ByArray : OutActors)
@@ -74,9 +77,9 @@ void AStrategyGameBaseHUD::GroupSelectingReleased()
 				OutActors.Remove(ByArray);
 				continue;
 			}
-			SpectatorController->UpdateCustomDepthFromActor(ByArray, true);
+			if(Cast<ABaseAggressivePawn>(ByArray)) AggressivePawnArray.Add(ByArray);
 		}
-		SpectatorController->AddTargetPawns(OutActors);
+		SpectatorController->AddTargetPawns(AggressivePawnArray.Num() > 0 ? AggressivePawnArray : OutActors);
 	}
 }
 

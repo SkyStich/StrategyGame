@@ -224,6 +224,11 @@ void ASpectatorPlayerController::AddTargetPawns(const TArray<ABaseAIPawn*>& NewT
 			UnBindTargetActorDeath(ByArray);
 			UpdateCustomDepthFromActor(ByArray, false);
 		}
+		
+		for(const auto& ByArray : NewTargets)
+		{
+			UpdateCustomDepthFromActor(ByArray, true);
+		}
 	}
 	Server_AddTargetPawns(NewTargets);
 }
