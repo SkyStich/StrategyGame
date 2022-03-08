@@ -67,6 +67,8 @@ void AStrategyGameBaseHUD::GroupSelectingReleased()
 	
 	ASpectatorPlayerController* SpectatorController = GetSpectatorPlayerController();
 	EObjectTeam const OwnerTeam = IFindObjectTeamInterface::Execute_FindObjectTeam(GetOwningPlayerController());
+
+	/** array for filter aggressive pawn */
 	TArray<ABaseAIPawn*> AggressivePawnArray;
 	if(SpectatorController)
 	{
@@ -181,7 +183,6 @@ void AStrategyGameBaseHUD::CreateActionGrid(const TArray<UActionBaseSlot*>& Slot
 		MainWidget->AttachWidgetToLeftBorder(ActionGrid);
 	}
 	ActionGrid->Init(Slots);
-	
 }
 
 void AStrategyGameBaseHUD::ClearActionGrid()

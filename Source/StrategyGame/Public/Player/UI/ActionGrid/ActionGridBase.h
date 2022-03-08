@@ -15,7 +15,7 @@ class STRATEGYGAME_API UActionGridBase : public UUserWidget
 	GENERATED_BODY()
 
 public:
-
+	
 	UFUNCTION(BlueprintImplementableEvent)
 	void Init(const TArray<UActionBaseSlot*>& BuildingSlots);
 	
