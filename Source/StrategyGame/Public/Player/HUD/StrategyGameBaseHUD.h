@@ -9,10 +9,9 @@
 #include "Player/PlayerController/SpectatorPlayerController.h"
 #include "Player/UI/ActionSlots/Base/ActionSpawnPawnSlotBase.h"
 #include "Player/UI/HealthStatistics/HealthStatisticsBase.h"
-
-
 #include "StrategyGameBaseHUD.generated.h"
 
+class UImprovementSlotBase;
 class UBaseMatchWidget;
 
 UCLASS(BlueprintType)
@@ -32,6 +31,8 @@ public:
 
 	UFUNCTION(BlueprintCallable)
 	void CreateActionGrid(const TArray<class UActionBaseSlot*>& Slots);
+
+	void AddImprovementWidgetToGrid(const TArray<class UActionBaseSlot*>& Slots);
 	void ClearActionGrid();
 	void RemoveActionGrid();
 	void GroupSelectingReleased();
@@ -39,6 +40,7 @@ public:
 
 	UBaseMatchWidget* GetMainWidget() const { return MainWidget; }
 	TAssetSubclassOf<UActionSpawnPawnSlotBase> GetActionSpawnPawnSlotClass() const { return ActionSpawnPawnSlotClass; }
+	TAssetSubclassOf<UImprovementSlotBase> GetImprovementSlotClass() const { return ImprovementSlotClass; }
 
 	/** Set visibility to ESlateVisible::Visibility */
 	virtual void ShowHealthStatistics(AActor* Target);
@@ -72,19 +74,22 @@ protected:
 	TAssetSubclassOf<UHealthStatisticsBase> HealthStatisticsWidgetClass;
 
 	UPROPERTY()
+	TAssetSubclassOf<UImprovementSlotBase> ImprovementSlotClass;
+	
+	UPROPERTY()
+	TAssetSubclassOf<UActionSpawnPawnSlotBase> ActionSpawnPawnSlotClass;
+	
+	UPROPERTY()
+	TAssetSubclassOf<class UActionGridBase> ActionGridClass;
+
+	UPROPERTY()
 	UHealthStatisticsBase* HealthStatisticsWidget;
 
 	UPROPERTY()
 	UBaseMatchWidget* MainWidget;
 
 	UPROPERTY()
-	TAssetSubclassOf<UActionSpawnPawnSlotBase> ActionSpawnPawnSlotClass;
-
-	UPROPERTY()
 	class UActionGridBase* ActionGrid;
-
-	UPROPERTY()
-	TAssetSubclassOf<class UActionGridBase> ActionGridClass;
 
 private:
 

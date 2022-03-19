@@ -22,6 +22,7 @@ public:
 
 	UDataTable* GetPawnDataByTeam(EObjectTeam OwnerTeam);
 	UDataTable* GetBuilderDataByTeam(EObjectTeam OwnerTeam);
+	UDataTable* GetImprovementDataByTeam(EObjectTeam OwnerTeam);
 
 private:
 
@@ -30,4 +31,7 @@ private:
 
 	UPROPERTY()
 	TMap<EObjectTeam, UDataTable*> BuilderDataTables;
+	
+	UPROPERTY()
+	TMap<EObjectTeam, UDataTable*> ImprovementDataTables;
 };

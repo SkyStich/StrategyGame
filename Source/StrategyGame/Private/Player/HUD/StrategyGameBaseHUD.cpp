@@ -2,7 +2,6 @@
 
 
 #include "Player/HUD/StrategyGameBaseHUD.h"
-
 #include "AI/Pawns/Base/BaseAggressivePawn.h"
 #include "Player/UI/MathWidgetBase/BaseMatchWidget.h"
 #include "UObject/ConstructorHelpers.h"
@@ -11,6 +10,7 @@
 #include "AI/Pawns/Base/BaseAIPawn.h"
 #include "Player/PlayerStates/StrategyMatchPlayerState.h"
 #include "Player/UI/ActionGrid/ActionGridBase.h"
+#include "Player/UI/ActionSlots/Base/ImprovementSlotBase.h"
 
 AStrategyGameBaseHUD::AStrategyGameBaseHUD()
 {
@@ -28,6 +28,9 @@ AStrategyGameBaseHUD::AStrategyGameBaseHUD()
 
 	static ConstructorHelpers::FClassFinder<UHealthStatisticsBase> HealthStatisticsFinder(TEXT("/Game/Blueprints/UI/HealthState/W_HealthStateWidget"));
 	if(HealthStatisticsFinder.Succeeded()) HealthStatisticsWidgetClass = HealthStatisticsFinder.Class;
+
+	static ConstructorHelpers::FClassFinder<UImprovementSlotBase> ImprovementSlotFinder(TEXT("/Game/Blueprints/UI/Actions/W_ImprovementSlot"));
+	if(ImprovementSlotFinder.Succeeded()) ImprovementSlotClass = ImprovementSlotFinder.Class;
 }
 
 void AStrategyGameBaseHUD::BeginPlay()
@@ -183,6 +186,16 @@ void AStrategyGameBaseHUD::CreateActionGrid(const TArray<UActionBaseSlot*>& Slot
 		MainWidget->AttachWidgetToLeftBorder(ActionGrid);
 	}
 	ActionGrid->Init(Slots);
+}
+
+void AStrategyGameBaseHUD::AddImprovementWidgetToGrid(const TArray<UActionBaseSlot*>& Slots)
+{
+	if(Slots.Num() <= 0) return;
+	
+	if(ActionGrid)
+	{
+		ActionGrid->AttachImprovementSlots(Slots);
+	}
 }
 
 void AStrategyGameBaseHUD::ClearActionGrid()

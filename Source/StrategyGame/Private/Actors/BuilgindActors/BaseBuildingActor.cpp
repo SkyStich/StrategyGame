@@ -5,9 +5,9 @@
 #include "Engine/DataTable.h"
 #include "DrawDebugHelpers.h"
 #include "Net/UnrealNetwork.h"
-#include "PhysXInterfaceWrapperCore.h"
 #include "Kismet/GameplayStatics.h"
 #include "AI/Pawns/Base/BaseAIPawn.h"
+#include "BlueprintFunctionLibraries/AsyncLoadLibrary.h"
 #include "BlueprintFunctionLibraries/SyncLoadLibrary.h"
 #include "Kismet/KismetMathLibrary.h"
 #include "Player/HUD/StrategyGameBaseHUD.h"
@@ -15,6 +15,7 @@
 #include "Player/UI/SpawnProgress/SpawnProgressSlotBase.h"
 #include "GameFramework/PlayerState.h"
 #include "GameInstance/Subsystems/GameAIPawnSubsystem.h"
+#include "Player/UI/ActionSlots/Base/ImprovementSlotBase.h"
 
 // Sets default values
 ABaseBuildingActor::ABaseBuildingActor()
@@ -65,6 +66,7 @@ void ABaseBuildingActor::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& O
 	DOREPLIFETIME_CONDITION(ABaseBuildingActor, OwnerPlayerController, COND_OwnerOnly);
 	DOREPLIFETIME_CONDITION(ABaseBuildingActor, QueueOfSpawn, COND_OwnerOnly);
 	DOREPLIFETIME_CONDITION(ABaseBuildingActor, BuildName, COND_InitialOnly);
+	DOREPLIFETIME_CONDITION(ABaseBuildingActor, ImprovementQueue, COND_OwnerOnly);
 	DOREPLIFETIME(ABaseBuildingActor, OwnerTeam);
 }
 
@@ -127,7 +129,8 @@ void ABaseBuildingActor::OnSpawnComplete()
 
 void ABaseBuildingActor::SpawnPawn(const FName& Id)
 {
-	if(QueueOfSpawn.Num() >= 9 || !GetOwnerController()) return;	
+	if(QueueOfSpawn.Num() >= 9 || !GetOwnerController()) return;
+	if(ImprovementQueue.Num() > 0) return;
 	
 	Server_SpawnPawn(Id);
 	StartSpawnTimer(Id);
@@ -135,6 +138,8 @@ void ABaseBuildingActor::SpawnPawn(const FName& Id)
 
 void ABaseBuildingActor::Server_SpawnPawn_Implementation(const FName& Key)
 {
+	if(ImprovementQueue.Num() > 0) return;
+	
 	auto const AISubsystem = GetGameInstance()->GetSubsystem<UGameAIPawnSubsystem>();
 	UDataTable* AIDataTable = AISubsystem->GetPawnDataByTeam(OwnerTeam);
 	FAIPawnData* AIData = AIDataTable->FindRow<FAIPawnData>(Key, TEXT("AIPawnDataTable"));
@@ -223,7 +228,18 @@ void ABaseBuildingActor::RefreshQueue()
 {
 	if(GetLocalRole() != ROLE_Authority) return;
 
-	if(QueueOfSpawn.Num() <= 0) return;
+	if(QueueOfSpawn.Num() <= 0)
+	{
+		if(ImprovementQueue.Num() > 0)
+		{
+			for(const auto& ByArray : ImprovementQueue)
+			{
+				StartImprovement(ByArray);
+				break;
+			}
+		}
+		return;
+	}
 	
 	GetWorld()->GetTimerManager().ClearTimer(SpawnPawnHandle);
 	FVector const SpawnLocation = FindSpawnLocation();
@@ -339,7 +355,31 @@ void ABaseBuildingActor::HighlightedActor_Implementation(AStrategyGameBaseHUD* P
 			SpawnSlots.Add(TempSlot);
 		}
 	}
+
+	TArray<UActionBaseSlot*> ImprovementSlots;
+	if(ImprovementLevelInfo.Num() > 0)
+	{
+		for(const auto& ByArray : ImprovementLevelInfo)
+		{
+			if(ImprovementQueue.FindByPredicate([&](FImprovementQueue Item) -> bool { return Item.Key == ByArray.RowName; })) continue;
+			auto const ImprovementDataTable = GetGameInstance()->GetSubsystem<UGameAIPawnSubsystem>()->GetImprovementDataByTeam(OwnerTeam);
+			auto const Row = ImprovementDataTable->FindRow<FImprovementData>(ByArray.RowName, *ImprovementDataTable->GetFullName());
+			if(!Row) continue;
+			if(ByArray.CurrentLevel >= Row->MaxLevelImprovement) continue;
+
+			auto TempImprovementSlot = USyncLoadLibrary::SyncLoadWidget<UImprovementSlotBase>(this, PlayerHUD->GetImprovementSlotClass(), OwnerPlayerController);
+			if(TempImprovementSlot)
+			{
+				TempImprovementSlot->SetIcon(Row->ImprovementDataByLevel[ByArray.CurrentLevel].Icon);
+				TempImprovementSlot->SetRowName(ByArray.RowName);
+				TempImprovementSlot->SetObjectImprovement(this);
+				ImprovementSlots.Add(TempImprovementSlot);
+			}
+		}
+	}
+	
 	PlayerHUD->CreateActionGrid(SpawnSlots);
+	PlayerHUD->AddImprovementWidgetToGrid(ImprovementSlots);
 	GenerateQueueSlots();
 }
 
@@ -411,4 +451,87 @@ void ABaseBuildingActor::Server_Highlighted_Implementation()
 void ABaseBuildingActor::Server_UnHighlighted_Implementation()
 {
 	UnHighlighted();
+}
+
+bool ABaseBuildingActor::ObjectImprovement_Implementation(const FName& RowName)
+{
+	auto const SubSystem = GetGameInstance()->GetSubsystem<UGameAIPawnSubsystem>();
+	if(SubSystem)
+	{
+		auto const RowData = *SubSystem->GetImprovementDataByTeam(OwnerTeam)->FindRow<FImprovementData>(RowName, TEXT("DT_ImprovementData"));
+
+		int32 const Index = ImprovementLevelInfo.FindByPredicate([&](FImprovementLevelInfo Item) -> bool
+            {  return Item.RowName == RowName; })->CurrentLevel;
+		
+		auto const ImprovementData = RowData.ImprovementDataByLevel[Index];
+		auto const NeedToBuy = RowData.ImprovementDataByLevel[Index].ResourcesNeedToBuy;
+
+		if(OwnerPlayerController->GetResourcesActorComponent()->EnoughResources(NeedToBuy))
+		{
+			//todo add create improvement slot progress
+			Server_BuildImprovement(RowName);
+			return true;
+		}
+	}
+	return false;
+}
+
+void ABaseBuildingActor::Server_BuildImprovement_Implementation(const FName& RowName)
+{
+	auto const SubSystem = GetGameInstance()->GetSubsystem<UGameAIPawnSubsystem>();
+	if(SubSystem)
+	{
+		int32 const Index = ImprovementLevelInfo.FindByPredicate([&](FImprovementLevelInfo Item) -> bool {  return Item.RowName == RowName; })->CurrentLevel;
+
+		auto const RowData = *SubSystem->GetImprovementDataByTeam(OwnerTeam)->FindRow<FImprovementData>(RowName, TEXT("DT_ImprovementData"));
+		auto const ImprovementData = RowData.ImprovementDataByLevel[Index];
+		auto const NeedToBuy = RowData.ImprovementDataByLevel[Index].ResourcesNeedToBuy;
+		
+		if(OwnerPlayerController->GetResourcesActorComponent()->EnoughResources(NeedToBuy))
+		{
+			for(const auto& ByArray : NeedToBuy)
+			{
+				OwnerPlayerController->DecreaseResourcesByType(ByArray.Key, ByArray.Value);
+			}
+			UAsyncLoadLibrary::AsyncLoadObjectInMemory(this, RowData.ImprovementClass);
+
+			if(QueueOfSpawn.Num() > 0)
+			{
+				ImprovementQueue.Add(FImprovementQueue(RowName, RowData));
+			}
+			else
+			{
+				StartImprovement(FImprovementQueue(RowName, RowData));
+			}
+		}
+	}
+}
+
+void ABaseBuildingActor::OnBuildingImprovementCompleted(FImprovementQueue ImprovementData)
+{
+	GetWorld()->GetTimerManager().ClearTimer(ImprovementBuildingHandle);
+	auto const ImprovementObject = NewObject<UPlayerImprovementCharacteristics>(this, ImprovementData.Value.ImprovementClass.Get());
+	ImprovementObject->SetOwner(OwnerPlayerController);
+	ImprovementObject->ImprovementObjectComplete(this);
+	for(auto& ByArray : ImprovementLevelInfo)
+	{
+		if(ByArray.RowName == ImprovementData.Key)
+		{
+			ByArray.CurrentLevel++;
+			break;
+		}
+	}
+	ImprovementQueue.RemoveAll([&](FImprovementQueue Item) -> bool { return Item.Key == ImprovementData.Key; });
+	RefreshQueue();
+}
+
+void ABaseBuildingActor::StartImprovement(const FImprovementQueue& ImprovementData)
+{
+	if(GetLocalRole() != ROLE_Authority) return;
+
+	int32 const CurrentLevel = ImprovementLevelInfo.FindByPredicate([&](FImprovementLevelInfo Item) -> bool { return Item.RowName == ImprovementData.Key; })->CurrentLevel;
+	float const Time = ImprovementData.Value.ImprovementDataByLevel[CurrentLevel].ImprovementTime;
+	FTimerDelegate TimerDel;
+	TimerDel.BindUObject(this, &ABaseBuildingActor::OnBuildingImprovementCompleted, ImprovementData);
+	GetWorld()->GetTimerManager().SetTimer(ImprovementBuildingHandle, TimerDel, Time, false);
 }

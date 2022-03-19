@@ -25,12 +25,14 @@ void AResourceProducingBuildingsBase::BeginPlay()
 
 	if(GetLocalRole() == ROLE_Authority)
 	{
-		GetWorld()->GetTimerManager().SetTimer(UpdateResourceHandle, this, &AResourceProducingBuildingsBase::UpdateResources, UpdateResourcesTime, true);
+		SetResourcesTimer();
 	}
 }
 
 void AResourceProducingBuildingsBase::UpdateResources()
 {
+	if(GetLocalRole() != ROLE_Authority) return;
+	
 	if(GetOwnerController())
 	{
 		for(auto& ByArray : IncreaseResourcesData)
@@ -42,12 +44,35 @@ void AResourceProducingBuildingsBase::UpdateResources()
 
 void AResourceProducingBuildingsBase::IncreaseResourcesTime(const float Value)
 {
+	if(GetLocalRole() != ROLE_Authority) return;
+	
 	UpdateResourcesTime += Value;
+	ClearResourcesTimer();
+	SetResourcesTimer();
 }
 
 void AResourceProducingBuildingsBase::DecreaseResourcesTime(const float Value)
 {
+	if(GetLocalRole() != ROLE_Authority) return;
+	
 	UpdateResourcesTime -= Value;
+	ClearResourcesTimer();
+	SetResourcesTimer();
 }
+
+void AResourceProducingBuildingsBase::SetResourcesTimer()
+{
+	if(GetLocalRole() != ROLE_Authority) return;
+
+	GetWorld()->GetTimerManager().SetTimer(UpdateResourceHandle, this, &AResourceProducingBuildingsBase::UpdateResources, UpdateResourcesTime, true);
+	
+}
+
+void AResourceProducingBuildingsBase::ClearResourcesTimer()
+{
+	if(GetLocalRole() != ROLE_Authority) return;
+	GetWorld()->GetTimerManager().ClearTimer(UpdateResourceHandle);
+}
+
 
 

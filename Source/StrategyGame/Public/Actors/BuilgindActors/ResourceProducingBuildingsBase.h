@@ -20,6 +20,9 @@ private:
 	void IncreaseResourcesTime(const float Value);
 	void DecreaseResourcesTime(const float Value);
 
+	void SetResourcesTimer();
+	void ClearResourcesTimer();
+
 	UFUNCTION()
 	void UpdateResources();
 

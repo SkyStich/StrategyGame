@@ -6,6 +6,7 @@
 #include "Blueprint/UserWidget.h"
 #include "Components/UniformGridPanel.h"
 #include "Engine/DataTable.h"
+#include "Player/UI/ActionSlots/Base/ActionBaseSlot.h"
 #include "Structs/SelectedObjectInfoBase.h"
 #include "ActionGridBase.generated.h"
 
@@ -18,7 +19,13 @@ public:
 	
 	UFUNCTION(BlueprintImplementableEvent)
 	void Init(const TArray<UActionBaseSlot*>& BuildingSlots);
-	
+
+	UFUNCTION(BlueprintImplementableEvent)
+	UUniformGridPanel* GetUniformGridPanel() const;
+
+	UFUNCTION(BlueprintCallable)
+	void AttachImprovementSlots(const TArray<UActionBaseSlot*> Slots);
+
 	UFUNCTION(BlueprintImplementableEvent)
 	void ClearGrid();
 };

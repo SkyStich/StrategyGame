@@ -12,6 +12,7 @@
 class USpectatorCameraComponent;
 class AStrategyGameBaseHUD;
 class AStrategyMatchPlayerState;
+class UPlayerImprovementCharacteristics;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FTargetActorUpdated, AActor*, TargetActor);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FActionWithObjectReleased);
@@ -27,8 +28,6 @@ class STRATEGYGAME_API ASpectatorPlayerController : public APlayerController, pu
 
 	/** Helper for find spectator camera component from controlled pawn */
 	USpectatorCameraComponent* GetSpectatorCameraComponent();
-
-	void RemoveGroupSelection(AStrategyGameBaseHUD* StrategyHUD);
 
 	/** call when actor be add to target array
 	 *
@@ -109,6 +108,7 @@ protected:
 public:
 
 	ASpectatorPlayerController(const FObjectInitializer& ObjectInitializer);
+	virtual bool ReplicateSubobjects(UActorChannel* Channel, FOutBunch* Bunch, FReplicationFlags* RepFlags) override;
 	virtual void UpdateRotation(float DeltaTime) override;
 	virtual void Tick(float DeltaSeconds) override;
 	virtual void GetLifetimeReplicatedProps(TArray< FLifetimeProperty > & OutLifetimeProps) const override;
@@ -141,7 +141,7 @@ public:
 	* @param	Type	Type resources for add value
 	* @param	Value	resources value for add to array	
 	*/
-	
+	UFUNCTION(BlueprintCallable, Category = "Resources")
 	void AddResourcesByType(const EResourcesType Type, const int32 Value);
 
 	/**
@@ -150,6 +150,7 @@ public:
 	* @param	Type	Type resources for add value
 	* @param	Value	resources value for add to array	
 	*/
+	UFUNCTION(BlueprintCallable, Category = "Resources")
 	void DecreaseResourcesByType(const EResourcesType Type, const int32 Value);
 
 	/**

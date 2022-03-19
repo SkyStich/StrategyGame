@@ -20,6 +20,9 @@ public:
 	void AttachWidgetToLeftBorder(UUserWidget* Widget);
 
 	UFUNCTION(BlueprintImplementableEvent)
+	void AttachImprovementWidgetToLeftBorder(UUserWidget* Widget);
+
+	UFUNCTION(BlueprintImplementableEvent)
 	void AttachSlotToQueue(class USpawnProgressSlotBase* WidgetToAttach);
 
 	UFUNCTION(BlueprintImplementableEvent)

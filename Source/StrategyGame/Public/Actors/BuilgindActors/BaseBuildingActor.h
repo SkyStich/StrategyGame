@@ -14,9 +14,9 @@
 #include "Player/UI/MathWidgetBase/BaseMatchWidget.h"
 #include "Structs/AllianceBuildingStructures.h"
 #include "Structs/AllianceAIData.h"
+#include "Interfaces/ImprovementInterface.h"
+#include "Structs/ImprovementData.h"
 #include "BaseBuildingActor.generated.h"
-
-class ASpectatorPlayerController;
 
 USTRUCT(BlueprintType)
 struct FQueueData
@@ -34,7 +34,8 @@ struct FQueueData
 };
 
 UCLASS(Abstract, Blueprintable)
-class STRATEGYGAME_API ABaseBuildingActor : public AActor, public IHighlightedInterface, public IGiveOrderToTargetPawns, public IFindObjectTeamInterface, public IFindObjectNameInterface
+class STRATEGYGAME_API ABaseBuildingActor : public AActor, public IHighlightedInterface,
+	public IGiveOrderToTargetPawns, public IFindObjectTeamInterface, public IFindObjectNameInterface, public IImprovementInterface
 {
 	GENERATED_BODY()
 
@@ -53,6 +54,9 @@ class STRATEGYGAME_API ABaseBuildingActor : public AActor, public IHighlightedIn
 
 	UFUNCTION(Server, Unreliable)
 	void Server_SpawnPawn(const FName& Key);
+
+	UFUNCTION(Server, Reliable)
+	void Server_BuildImprovement(const FName& RowName);
 	
 	UFUNCTION(Server, Unreliable)
 	void Server_Highlighted();
@@ -76,6 +80,12 @@ class STRATEGYGAME_API ABaseBuildingActor : public AActor, public IHighlightedIn
 	UFUNCTION()
 	void UnHighlighted();
 
+	UFUNCTION()
+	void OnBuildingImprovementCompleted(FImprovementQueue ImprovementData);
+
+	UFUNCTION()
+	void StartImprovement(const FImprovementQueue& ImprovementData);
+
 	void RefreshQueue();
 	FVector FindSpawnLocation();
 	
@@ -90,13 +100,14 @@ public:
 	virtual EObjectTeam FindObjectTeam_Implementation() override;
 	virtual void HighlightedActor_Implementation(AStrategyGameBaseHUD* PlayerHUD) override;
 	virtual FText FindObjectName_Implementation() const override { return BuildName; }
+	virtual bool ObjectImprovement_Implementation(const FName& RowName) override;
 
 	void RemoveSlotFromQueue(USpawnProgressSlotBase* SlotForRemove);
 	void SpawnPawn(const FName& Id);
-	void SetOwnerController(ASpectatorPlayerController* Controller);
+	void SetOwnerController(class ASpectatorPlayerController* Controller);
 	void SetTeamOwner(EObjectTeam Team) { OwnerTeam = Team; }
 	
-	ASpectatorPlayerController* GetOwnerController() const { return OwnerPlayerController; }
+	class ASpectatorPlayerController* GetOwnerController() const { return OwnerPlayerController; }
 
 	/*  set build name
 	 *
@@ -128,7 +139,7 @@ private:
 	UStaticMeshComponent* StaticMeshComponent;
 
 	UPROPERTY(BlueprintReadOnly, Replicated, Category = "Owners|PlayerController", meta=(AllowPrivateAccess="true", ExposeOfSpawn = true))
-	ASpectatorPlayerController* OwnerPlayerController;
+	class ASpectatorPlayerController* OwnerPlayerController;
 
 	/** The point to which pawns will aim after emerging from this building  */
 	UPROPERTY(BlueprintReadOnly, Replicated, Category = "Owners|PlayerController", meta=(AllowPrivateAccess="true"))
@@ -144,6 +155,9 @@ private:
 	UPROPERTY(Replicated)
 	TArray<FQueueData> QueueOfSpawn;
 
+	UPROPERTY(Replicated)
+	TArray<FImprovementQueue> ImprovementQueue; 
+
 	UPROPERTY(Replicated, meta = (ExposeOfSpawn = "true"))
 	FText BuildName;
 	
@@ -152,6 +166,12 @@ private:
 	
 	UPROPERTY(BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
 	FTimerHandle SpawnPawnHandle;
+
+	UPROPERTY(BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
+	FTimerHandle ImprovementBuildingHandle;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Improvement", meta = (AllowPrivateAccess = "true"))
+	TArray<FImprovementLevelInfo> ImprovementLevelInfo;
 
 	UPROPERTY(VisibleDefaultsOnly, BlueprintReadOnly, Category = "HealthComponent", meta = (AllowPrivateAccess = "true"))
 	UObjectHealthComponent* ObjectHealthComponent;

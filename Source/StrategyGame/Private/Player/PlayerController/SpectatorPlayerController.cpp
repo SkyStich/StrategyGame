@@ -7,6 +7,7 @@
 #include "Actors/StaticMeshActors/PreBuildingActor.h"
 #include "AI/Controllers/Base/BaseBuilderAIController.h"
 #include "AI/Pawns/Base/BaseAIPawn.h"
+#include "Engine/ActorChannel.h"
 #include "Engine/PostProcessVolume.h"
 #include "GameInstance/Subsystems/GameAIPawnSubsystem.h"
 #include "Kismet/GameplayStatics.h"
@@ -15,6 +16,7 @@
 #include "UObject/ConstructorHelpers.h"
 #include "Player/HUD/StrategyGameBaseHUD.h"
 #include "Player/PlayerStates/StrategyMatchPlayerState.h"
+#include "Player/Objects/PlayerImprovementCharacteristics.h"
 
 ASpectatorPlayerController::ASpectatorPlayerController(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
 {
@@ -40,6 +42,11 @@ void ASpectatorPlayerController::BeginPlay()
 		SetInputMode(FInputModeGameOnly());
 		SpawnPostProcess();
 	}
+}
+
+bool ASpectatorPlayerController::ReplicateSubobjects(UActorChannel* Channel, FOutBunch* Bunch, FReplicationFlags* RepFlags)
+{
+	return Super::ReplicateSubobjects(Channel, Bunch, RepFlags);
 }
 
 void ASpectatorPlayerController::OnPossess(APawn* InPawn)
