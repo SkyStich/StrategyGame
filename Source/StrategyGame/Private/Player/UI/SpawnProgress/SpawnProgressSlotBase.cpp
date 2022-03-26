@@ -10,6 +10,5 @@ void USpawnProgressSlotBase::RemoveFromParent()
 
 void USpawnProgressSlotBase::RemoveSlotFromQueue()
 {
-	BuildOwner->RemoveSlotFromQueue(this);
 	RemoveFromParent();
 }

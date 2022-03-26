@@ -3,7 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
-
+#include "Interfaces/ProgressSlotInterface.h"
 #include "Actors/BuilgindActors/BaseBuildingActor.h"
 #include "Blueprint/UserWidget.h"
 #include "SpawnProgressSlotBase.generated.h"
@@ -11,36 +11,32 @@
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FSlotRemoved, USpawnProgressSlotBase*, RemoveSlot);
 
 UCLASS()
-class STRATEGYGAME_API USpawnProgressSlotBase : public UUserWidget
+class STRATEGYGAME_API USpawnProgressSlotBase : public UUserWidget, public IProgressSlotInterface
 {
 	GENERATED_BODY()
 
 public:
 
-	void SetSpawnTime(const float Time) { SpawnTime = Time; }
+	void SetSpawnTime(const float NewTime) { Time = NewTime; }
 	void SetIcon(UTexture2D* Texture) { Icon = Texture; }
 	void SetId(const FName& NewId) { Id = NewId; }
-	void SetBuildOwner(ABaseBuildingActor* NewOwner) { BuildOwner = NewOwner; }
 	FName GetId() const { return Id; }
 
 	UFUNCTION(BlueprintCallable)
-	void RemoveSlotFromQueue();
+	virtual void RemoveSlotFromQueue();
 
 	virtual void RemoveFromParent() override;
 	
 protected:
 
 	UPROPERTY(BlueprintReadOnly)
-	float SpawnTime;
+	float Time;
 
 	UPROPERTY(BlueprintReadOnly)
 	UTexture2D* Icon;
 	
 	UPROPERTY(BlueprintReadOnly)
 	FName Id;
-
-	UPROPERTY(BlueprintReadOnly)
-	ABaseBuildingActor* BuildOwner;
 
 public:
 

@@ -10,6 +10,7 @@
 #include "AI/Pawns/Base/BaseAIPawn.h"
 #include "Player/PlayerStates/StrategyMatchPlayerState.h"
 #include "Player/UI/ActionGrid/ActionGridBase.h"
+#include "Player/UI/SpawnProgress/BuildingSpawnProgressSlotBase.h"
 #include "Player/UI/ActionSlots/Base/ImprovementSlotBase.h"
 
 AStrategyGameBaseHUD::AStrategyGameBaseHUD()
@@ -31,6 +32,9 @@ AStrategyGameBaseHUD::AStrategyGameBaseHUD()
 
 	static ConstructorHelpers::FClassFinder<UImprovementSlotBase> ImprovementSlotFinder(TEXT("/Game/Blueprints/UI/Actions/W_ImprovementSlot"));
 	if(ImprovementSlotFinder.Succeeded()) ImprovementSlotClass = ImprovementSlotFinder.Class;
+
+	static ConstructorHelpers::FClassFinder<UBuildingSpawnProgressSlotBase> BuildingProgressSlotFinder(TEXT("/Game/Blueprints/UI/SpawnProgress/W_SpawnProgressSlot"));
+	if(BuildingProgressSlotFinder.Succeeded()) BuildingProgressSlotClass = BuildingProgressSlotFinder.Class;
 }
 
 void AStrategyGameBaseHUD::BeginPlay()

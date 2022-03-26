@@ -41,6 +41,7 @@ public:
 	UBaseMatchWidget* GetMainWidget() const { return MainWidget; }
 	TAssetSubclassOf<UActionSpawnPawnSlotBase> GetActionSpawnPawnSlotClass() const { return ActionSpawnPawnSlotClass; }
 	TAssetSubclassOf<UImprovementSlotBase> GetImprovementSlotClass() const { return ImprovementSlotClass; }
+	TSubclassOf<class UBuildingSpawnProgressSlotBase> GetBuildingProgressSlotClass() const { return BuildingProgressSlotClass; }
 
 	/** Set visibility to ESlateVisible::Visibility */
 	virtual void ShowHealthStatistics(AActor* Target);
@@ -81,6 +82,9 @@ protected:
 	
 	UPROPERTY()
 	TAssetSubclassOf<class UActionGridBase> ActionGridClass;
+	
+	UPROPERTY()
+	TSubclassOf<class UBuildingSpawnProgressSlotBase> BuildingProgressSlotClass;
 
 	UPROPERTY()
 	UHealthStatisticsBase* HealthStatisticsWidget;

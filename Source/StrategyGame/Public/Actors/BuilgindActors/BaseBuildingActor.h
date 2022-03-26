@@ -8,7 +8,6 @@
 #include "Net/RepLayout.h"
 #include "GameFramework/Actor.h"
 #include "Interfaces/GiveOrderToTargetPawns.h"
-#include "NavigationSystem.h"
 #include "Enums/TeamData.h"
 #include "Interfaces/FindObjectTeamInterface.h"
 #include "Player/UI/MathWidgetBase/BaseMatchWidget.h"
@@ -102,6 +101,8 @@ public:
 	virtual FText FindObjectName_Implementation() const override { return BuildName; }
 	virtual bool ObjectImprovement_Implementation(const FName& RowName) override;
 
+	FTimerHandle GetProgressTimerHandle() const { return ProgressTimerHandle; }
+
 	void RemoveSlotFromQueue(USpawnProgressSlotBase* SlotForRemove);
 	void SpawnPawn(const FName& Id);
 	void SetOwnerController(class ASpectatorPlayerController* Controller);
@@ -149,9 +150,6 @@ private:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "SpawnData", meta = (AllowPrivateAccess = "true"))
 	TArray<FName> PawnRowNames;
 
-	UPROPERTY()
-	TSubclassOf<class USpawnProgressSlotBase> SpawnProgressSlot;
-
 	UPROPERTY(Replicated)
 	TArray<FQueueData> QueueOfSpawn;
 
@@ -165,10 +163,7 @@ private:
 	EObjectTeam OwnerTeam;
 	
 	UPROPERTY(BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
-	FTimerHandle SpawnPawnHandle;
-
-	UPROPERTY(BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
-	FTimerHandle ImprovementBuildingHandle;
+	FTimerHandle ProgressTimerHandle;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Improvement", meta = (AllowPrivateAccess = "true"))
 	TArray<FImprovementLevelInfo> ImprovementLevelInfo;

@@ -7,6 +7,7 @@
 #include "Net/UnrealNetwork.h"
 #include "Kismet/GameplayStatics.h"
 #include "AI/Pawns/Base/BaseAIPawn.h"
+#include "NavigationSystem.h"
 #include "BlueprintFunctionLibraries/AsyncLoadLibrary.h"
 #include "BlueprintFunctionLibraries/SyncLoadLibrary.h"
 #include "Kismet/KismetMathLibrary.h"
@@ -16,6 +17,7 @@
 #include "GameFramework/PlayerState.h"
 #include "GameInstance/Subsystems/GameAIPawnSubsystem.h"
 #include "Player/UI/ActionSlots/Base/ImprovementSlotBase.h"
+#include "Player/UI/SpawnProgress/BuildingSpawnProgressSlotBase.h"
 
 // Sets default values
 ABaseBuildingActor::ABaseBuildingActor()
@@ -38,9 +40,6 @@ ABaseBuildingActor::ABaseBuildingActor()
 	StaticMeshComponent->SetupAttachment(RootComponent);
 	
 	ObjectHealthComponent = CreateDefaultSubobject<UObjectHealthComponent>(TEXT("ObjectHealthComponent"));
-
-	static ConstructorHelpers::FClassFinder<USpawnProgressSlotBase>SpawnProgressSlotFinder(TEXT("/Game/Blueprints/UI/SpawnProgress/W_SpawnProgressSlot"));
-	if(SpawnProgressSlotFinder.Succeeded()) SpawnProgressSlot = SpawnProgressSlotFinder.Class;
 }
 
 // Called when the game starts or when spawned
@@ -87,7 +86,7 @@ void ABaseBuildingActor::SetOwnerController(ASpectatorPlayerController* Controll
 
 void ABaseBuildingActor::StartSpawnTimer(const FName& Key)
 {
-	if(GetLocalRole() != ROLE_Authority && !GetWorld()->GetTimerManager().IsTimerActive(SpawnPawnHandle))
+	if(GetLocalRole() != ROLE_Authority && !GetWorld()->GetTimerManager().IsTimerActive(ProgressTimerHandle))
 	{
 		auto const Ping = OwnerPlayerController->PlayerState->GetPing() / 10;
 		auto const PawnData = GetGameInstance()->GetSubsystem<UGameAIPawnSubsystem>()->GetPawnDataByTeam(OwnerTeam);
@@ -98,13 +97,13 @@ void ABaseBuildingActor::StartSpawnTimer(const FName& Key)
 
 		FTimerDelegate TimerDel;
 		TimerDel.BindUObject(this, &ABaseBuildingActor::OnSpawnComplete);
-		GetWorld()->GetTimerManager().SetTimer(SpawnPawnHandle, TimerDel, RowData->TimeBeforeSpawn + Ping, false);
+		GetWorld()->GetTimerManager().SetTimer(ProgressTimerHandle, TimerDel, RowData->TimeBeforeSpawn + Ping, false);
 	}
 }
 
 void ABaseBuildingActor::RefreshSpawnTimer()
 {
-	GetWorld()->GetTimerManager().ClearTimer(SpawnPawnHandle);
+	GetWorld()->GetTimerManager().ClearTimer(ProgressTimerHandle);
 	if(QueueOfSpawn.Num() <= 0) return;
 	
 	auto const Ping = OwnerPlayerController->PlayerState->GetPing() / 10;
@@ -119,17 +118,17 @@ void ABaseBuildingActor::RefreshSpawnTimer()
 			break;
 		}
 	}
-	GetWorld()->GetTimerManager().SetTimer(SpawnPawnHandle, TimerDel, TempData.Value.TimeBeforeSpawn + Ping, false);
+	GetWorld()->GetTimerManager().SetTimer(ProgressTimerHandle, TimerDel, TempData.Value.TimeBeforeSpawn + Ping, false);
 }
 
 void ABaseBuildingActor::OnSpawnComplete()
 {
-	GetWorld()->GetTimerManager().ClearTimer(SpawnPawnHandle);
+	GetWorld()->GetTimerManager().ClearTimer(ProgressTimerHandle);
 }
 
 void ABaseBuildingActor::SpawnPawn(const FName& Id)
 {
-	if(QueueOfSpawn.Num() >= 9 || !GetOwnerController()) return;
+	if(QueueOfSpawn.Num() >= 9 - ImprovementQueue.Num() || !GetOwnerController()) return;
 	if(ImprovementQueue.Num() > 0) return;
 	
 	Server_SpawnPawn(Id);
@@ -184,7 +183,7 @@ void ABaseBuildingActor::StartSpawnPawn(const FName& Key)
 		FQueueData const QueueData(FQueueData(QueueKey, *PawnDataTable));
 		QueueOfSpawn.Add(QueueData);
 
-		if(GetWorld()->GetTimerManager().IsTimerActive(SpawnPawnHandle)) return;
+		if(GetWorld()->GetTimerManager().IsTimerActive(ProgressTimerHandle)) return;
 		if(UKismetMathLibrary::IsPointInBox(SpawnLocation, BoxCollision->GetComponentLocation(), Ext))
 		{
 			StartSpawnPawn(Key);
@@ -193,13 +192,13 @@ void ABaseBuildingActor::StartSpawnPawn(const FName& Key)
 		
 		FTimerDelegate TimerDelegate;
 		TimerDelegate.BindUObject(this, &ABaseBuildingActor::OnSpawnPawn, QueueData, SpawnLocation);
-		GetWorld()->GetTimerManager().SetTimer(SpawnPawnHandle, TimerDelegate, PawnDataTable->TimeBeforeSpawn, false);
+		GetWorld()->GetTimerManager().SetTimer(ProgressTimerHandle, TimerDelegate, PawnDataTable->TimeBeforeSpawn, false);
 	}
 }
 
 void ABaseBuildingActor::OnSpawnPawn(FQueueData QueueData, FVector SpawnLocation)
 {
-	GetWorld()->GetTimerManager().ClearTimer(SpawnPawnHandle);
+	GetWorld()->GetTimerManager().ClearTimer(ProgressTimerHandle);
 	QueueOfSpawn.RemoveAll([&](FQueueData Item) -> bool { return Item.QueueId == QueueData.QueueId; });
 	Client_OnSpawnFinished(QueueData.QueueId);
 	
@@ -241,7 +240,7 @@ void ABaseBuildingActor::RefreshQueue()
 		return;
 	}
 	
-	GetWorld()->GetTimerManager().ClearTimer(SpawnPawnHandle);
+	GetWorld()->GetTimerManager().ClearTimer(ProgressTimerHandle);
 	FVector const SpawnLocation = FindSpawnLocation();
 	FVector const Ext = BoxCollision->GetScaledBoxExtent() * 1.2f;
 	if(OwnerPlayerController)
@@ -264,7 +263,7 @@ void ABaseBuildingActor::RefreshQueue()
 		
 		FTimerDelegate TimerDelegate;
 		TimerDelegate.BindUObject(this, &ABaseBuildingActor::OnSpawnPawn, TempData, SpawnLocation);
-		GetWorld()->GetTimerManager().SetTimer(SpawnPawnHandle, TimerDelegate, TempData.Value.TimeBeforeSpawn, false);
+		GetWorld()->GetTimerManager().SetTimer(ProgressTimerHandle, TimerDelegate, TempData.Value.TimeBeforeSpawn, false);
 	}
 }
 
@@ -294,13 +293,14 @@ void ABaseBuildingActor::Server_ClearSpawnPawnHandle_Implementation(const FName&
 
 	auto const Reference = QueueOfSpawn.FindByPredicate([&](FQueueData Item) -> bool { return Item.QueueId == Key; });
 
-	GetWorld()->GetTimerManager().ClearTimer(SpawnPawnHandle);
+	GetWorld()->GetTimerManager().ClearTimer(ProgressTimerHandle);
 	QueueOfSpawn.RemoveAllSwap([&](FQueueData Item) -> bool { return Item.QueueId == Key; });
 }
 
 void ABaseBuildingActor::GenerateQueueSlots()
 {
-	UBaseMatchWidget* MainWidget = OwnerPlayerController->GetHUD<AStrategyGameBaseHUD>()->GetMainWidget();
+	auto const HUD = OwnerPlayerController->GetHUD<AStrategyGameBaseHUD>();
+	UBaseMatchWidget* MainWidget = HUD->GetMainWidget();
 	MainWidget->ClearQueueBorder();
 	int32 Index = -1;
 	for(const auto& ByArray : QueueOfSpawn)
@@ -309,18 +309,46 @@ void ABaseBuildingActor::GenerateQueueSlots()
 		
 		Index++;
 		float TempMaxTime = ByArray.Value.TimeBeforeSpawn;
-		if(Index == 0 && GetWorld()->GetTimerManager().IsTimerActive(SpawnPawnHandle))
+		if(Index == 0 && GetWorld()->GetTimerManager().IsTimerActive(ProgressTimerHandle))
 		{
-			TempMaxTime = GetWorld()->GetTimerManager().GetTimerRemaining(SpawnPawnHandle);
+			TempMaxTime = GetWorld()->GetTimerManager().GetTimerRemaining(ProgressTimerHandle);
 		}
 		
-		auto SlotWidget = CreateWidget<USpawnProgressSlotBase>(OwnerPlayerController, SpawnProgressSlot);
+		auto SlotWidget = CreateWidget<UBuildingSpawnProgressSlotBase>(OwnerPlayerController, HUD->GetBuildingProgressSlotClass());
 		if(SlotWidget)
 		{
 			SlotWidget->SetSpawnTime(TempMaxTime);
 			SlotWidget->SetId(ByArray.QueueId);
 			SlotWidget->SetBuildOwner(this);
 			SlotWidget->SetIcon(USyncLoadLibrary::SyncLoadTexture(this, ByArray.Value.Icon));
+			MainWidget->AttachSlotToQueue(SlotWidget);
+		}
+	}
+
+	Index = -1;
+	for(const auto& ByArray : ImprovementQueue)
+	{
+		Index++;
+		int32 ImprovementIndex = -1;
+		ImprovementIndex = ImprovementLevelInfo.FindByPredicate([&](FImprovementLevelInfo Item) -> bool { return Item.RowName == ByArray.Key; })->CurrentLevel;
+
+		if(!ByArray.Value.ImprovementDataByLevel.IsValidIndex(ImprovementIndex)) continue;
+		
+		float TempTime = ByArray.Value.ImprovementDataByLevel[ImprovementIndex].ImprovementTime;
+		
+		if(QueueOfSpawn.Num() > 0)
+		{
+			if(Index == 0 && GetWorld()->GetTimerManager().IsTimerActive(ProgressTimerHandle))
+			{
+				TempTime = GetWorld()->GetTimerManager().GetTimerRemaining(ProgressTimerHandle);
+			}
+		}
+		auto SlotWidget = CreateWidget<USpawnProgressSlotBase>(OwnerPlayerController, HUD->GetBuildingProgressSlotClass());
+		if(SlotWidget)
+		{
+			SlotWidget->SetSpawnTime(TempTime);
+			SlotWidget->SetId(ByArray.Key);
+			SlotWidget->SetIcon(USyncLoadLibrary::SyncLoadTexture(this, ByArray.Value.ImprovementDataByLevel[ImprovementIndex].Icon));
 			MainWidget->AttachSlotToQueue(SlotWidget);
 		}
 	}
@@ -385,7 +413,8 @@ void ABaseBuildingActor::HighlightedActor_Implementation(AStrategyGameBaseHUD* P
 
 void ABaseBuildingActor::GenerateQueueSlot(const FName& Id)
 {
-	UBaseMatchWidget* MainWidget = OwnerPlayerController->GetHUD<AStrategyGameBaseHUD>()->GetMainWidget();
+	auto const HUD = OwnerPlayerController->GetHUD<AStrategyGameBaseHUD>();
+	UBaseMatchWidget* MainWidget = HUD->GetMainWidget();
 	
 	UDataTable* TempSpawnData = GetGameInstance()->GetSubsystem<UGameAIPawnSubsystem>()->GetPawnDataByTeam(OwnerTeam);
 	if(!TempSpawnData)
@@ -396,7 +425,7 @@ void ABaseBuildingActor::GenerateQueueSlot(const FName& Id)
 	FString const ContextString = TempSpawnData->GetName();
 	FAIPawnData* SpawnData = TempSpawnData->FindRow<FAIPawnData>(Id, ContextString);
 	
-	auto SlotWidget = CreateWidget<USpawnProgressSlotBase>(OwnerPlayerController, SpawnProgressSlot);
+	auto SlotWidget = CreateWidget<UBuildingSpawnProgressSlotBase>(OwnerPlayerController, HUD->GetBuildingProgressSlotClass());
 	if(SlotWidget)
 	{
 		SlotWidget->SetSpawnTime(SpawnData->TimeBeforeSpawn);
@@ -456,7 +485,7 @@ void ABaseBuildingActor::Server_UnHighlighted_Implementation()
 bool ABaseBuildingActor::ObjectImprovement_Implementation(const FName& RowName)
 {
 	auto const SubSystem = GetGameInstance()->GetSubsystem<UGameAIPawnSubsystem>();
-	if(SubSystem)
+	if(SubSystem && (QueueOfSpawn.Num() + ImprovementQueue.Num()) < 9)
 	{
 		auto const RowData = *SubSystem->GetImprovementDataByTeam(OwnerTeam)->FindRow<FImprovementData>(RowName, TEXT("DT_ImprovementData"));
 
@@ -509,7 +538,7 @@ void ABaseBuildingActor::Server_BuildImprovement_Implementation(const FName& Row
 
 void ABaseBuildingActor::OnBuildingImprovementCompleted(FImprovementQueue ImprovementData)
 {
-	GetWorld()->GetTimerManager().ClearTimer(ImprovementBuildingHandle);
+	GetWorld()->GetTimerManager().ClearTimer(ProgressTimerHandle);
 	auto const ImprovementObject = NewObject<UPlayerImprovementCharacteristics>(this, ImprovementData.Value.ImprovementClass.Get());
 	ImprovementObject->SetOwner(OwnerPlayerController);
 	ImprovementObject->ImprovementObjectComplete(this);
@@ -529,9 +558,10 @@ void ABaseBuildingActor::StartImprovement(const FImprovementQueue& ImprovementDa
 {
 	if(GetLocalRole() != ROLE_Authority) return;
 
+	GetWorld()->GetTimerManager().ClearTimer(ProgressTimerHandle);
 	int32 const CurrentLevel = ImprovementLevelInfo.FindByPredicate([&](FImprovementLevelInfo Item) -> bool { return Item.RowName == ImprovementData.Key; })->CurrentLevel;
 	float const Time = ImprovementData.Value.ImprovementDataByLevel[CurrentLevel].ImprovementTime;
 	FTimerDelegate TimerDel;
 	TimerDel.BindUObject(this, &ABaseBuildingActor::OnBuildingImprovementCompleted, ImprovementData);
-	GetWorld()->GetTimerManager().SetTimer(ImprovementBuildingHandle, TimerDel, Time, false);
+	GetWorld()->GetTimerManager().SetTimer(ProgressTimerHandle, TimerDel, Time, false);
 }
