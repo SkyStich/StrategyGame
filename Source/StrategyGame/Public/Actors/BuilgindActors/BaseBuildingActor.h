@@ -40,7 +40,10 @@ class STRATEGYGAME_API ABaseBuildingActor : public AActor, public IHighlightedIn
 
 	/** Start spawn pawn client logic */
 	UFUNCTION()
-	void StartSpawnTimer(const FName& Key);
+	void StartProgressTimer(float Time);
+
+	UFUNCTION()
+	void AddImprovementProgressSlot(const FImprovementDataByLevel& Data, const FName& RowName);
 
 	UFUNCTION()
 	void OnSpawnComplete();
@@ -72,6 +75,9 @@ class STRATEGYGAME_API ABaseBuildingActor : public AActor, public IHighlightedIn
 
 	UFUNCTION(Client, Unreliable)
 	void Client_OnSpawnFinished(const FName& Key);
+
+	UFUNCTION(Client, Unreliable)
+	void Client_OnImprovementFinished(const FName& Key);
 
 	UFUNCTION()
 	void OnSpawnPawn(FQueueData QueueData, FVector SpawnLocation);

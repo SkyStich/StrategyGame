@@ -84,20 +84,15 @@ void ABaseBuildingActor::SetOwnerController(ASpectatorPlayerController* Controll
 	OwnerPlayerController = Controller;	
 }
 
-void ABaseBuildingActor::StartSpawnTimer(const FName& Key)
+void ABaseBuildingActor::StartProgressTimer(float Time)
 {
 	if(GetLocalRole() != ROLE_Authority && !GetWorld()->GetTimerManager().IsTimerActive(ProgressTimerHandle))
 	{
 		auto const Ping = OwnerPlayerController->PlayerState->GetPing() / 10;
-		auto const PawnData = GetGameInstance()->GetSubsystem<UGameAIPawnSubsystem>()->GetPawnDataByTeam(OwnerTeam);
-		if(!PawnData) return;
-		
-		auto const RowData = PawnData->FindRow<FAIPawnData>(Key, *PawnData->GetName());
-		if(!RowData) return;
 
 		FTimerDelegate TimerDel;
 		TimerDel.BindUObject(this, &ABaseBuildingActor::OnSpawnComplete);
-		GetWorld()->GetTimerManager().SetTimer(ProgressTimerHandle, TimerDel, RowData->TimeBeforeSpawn + Ping, false);
+		GetWorld()->GetTimerManager().SetTimer(ProgressTimerHandle, TimerDel, Time + Ping, false);
 	}
 }
 
@@ -132,7 +127,14 @@ void ABaseBuildingActor::SpawnPawn(const FName& Id)
 	if(ImprovementQueue.Num() > 0) return;
 	
 	Server_SpawnPawn(Id);
-	StartSpawnTimer(Id);
+	
+	auto const PawnData = GetGameInstance()->GetSubsystem<UGameAIPawnSubsystem>()->GetPawnDataByTeam(OwnerTeam);
+	if(!PawnData) return;
+		
+	auto const RowData = PawnData->FindRow<FAIPawnData>(Id, *PawnData->GetName());
+	if(!RowData) return;
+	
+	StartProgressTimer(RowData->TimeBeforeSpawn);
 }
 
 void ABaseBuildingActor::Server_SpawnPawn_Implementation(const FName& Key)
@@ -497,8 +499,9 @@ bool ABaseBuildingActor::ObjectImprovement_Implementation(const FName& RowName)
 
 		if(OwnerPlayerController->GetResourcesActorComponent()->EnoughResources(NeedToBuy))
 		{
-			//todo add create improvement slot progress
 			Server_BuildImprovement(RowName);
+			StartProgressTimer(ImprovementData.ImprovementTime);
+			AddImprovementProgressSlot(ImprovementData, RowName);
 			return true;
 		}
 	}
@@ -551,7 +554,7 @@ void ABaseBuildingActor::OnBuildingImprovementCompleted(FImprovementQueue Improv
 		}
 	}
 	ImprovementQueue.RemoveAll([&](FImprovementQueue Item) -> bool { return Item.Key == ImprovementData.Key; });
-	RefreshQueue();
+	Client_OnImprovementFinished(ImprovementData.Key);
 }
 
 void ABaseBuildingActor::StartImprovement(const FImprovementQueue& ImprovementData)
@@ -564,4 +567,30 @@ void ABaseBuildingActor::StartImprovement(const FImprovementQueue& ImprovementDa
 	FTimerDelegate TimerDel;
 	TimerDel.BindUObject(this, &ABaseBuildingActor::OnBuildingImprovementCompleted, ImprovementData);
 	GetWorld()->GetTimerManager().SetTimer(ProgressTimerHandle, TimerDel, Time, false);
+}
+
+void ABaseBuildingActor::AddImprovementProgressSlot(const FImprovementDataByLevel& Data, const FName& RowName)
+{
+	auto const HUD = OwnerPlayerController->GetHUD<AStrategyGameBaseHUD>();
+	if(!HUD) return;
+	
+	UBaseMatchWidget* MainWidget = HUD->GetMainWidget();
+	auto const SlotClass = HUD->GetBuildingImprovementProgressSlotClass();
+
+	auto const Slot = CreateWidget<UBuildingSpawnProgressSlotBase>(OwnerPlayerController, SlotClass);
+	if(Slot)
+	{
+		Slot->SetSpawnTime(Data.ImprovementTime);
+		Slot->SetId(RowName);
+		Slot->SetIcon(USyncLoadLibrary::SyncLoadTexture(this, Data.Icon));
+		Slot->SetBuildOwner(this);
+		MainWidget->AttachSlotToQueue(Slot);
+	}
+}
+
+void ABaseBuildingActor::Client_OnImprovementFinished_Implementation(const FName& Key)
+{
+	ImprovementQueue.RemoveAll([&](FImprovementQueue Item) -> bool { return Item.Key == Key; });
+	RefreshSpawnTimer(); 
+	GenerateQueueSlots();
 }
