@@ -20,17 +20,25 @@ public:
 	UFUNCTION(BlueprintCallable)
 	void SpawnBuilding();
 
+	void SetIcon(TAssetPtr<UTexture2D> Icon) { SlotIcon = Icon; }
+	void SetClass(TAssetSubclassOf<class ABaseBuildingActor> Class) { SpawnBuildClass = Class; }
+	void SetRowName(const FName& Row) { RowName = Row; }
+	void SetResourcesNeedToBuy(const TArray<FResourcesData>& Resources) { ResourcesNeedToBuy = Resources; }
+
+	UFUNCTION(BlueprintImplementableEvent)
+	void Init();
+	
 protected:
 
-	UPROPERTY(BlueprintReadOnly, VisibleInstanceOnly, meta = (ExposeOnSpawn = "true"))
+	UPROPERTY(BlueprintReadOnly, VisibleInstanceOnly)
 	TAssetSubclassOf<class ABaseBuildingActor> SpawnBuildClass;
 
-	UPROPERTY(BlueprintReadOnly, VisibleInstanceOnly, meta = (ExposeOnSpawn = "true"))
+	UPROPERTY(BlueprintReadOnly, VisibleInstanceOnly)
 	TAssetPtr<UTexture2D> SlotIcon;
 	
-	UPROPERTY(BlueprintReadOnly, VisibleInstanceOnly, meta = (ExposeOnSpawn = "true"))
+	UPROPERTY(BlueprintReadOnly, VisibleInstanceOnly)
 	TArray<FResourcesData> ResourcesNeedToBuy;
 
-	UPROPERTY(BlueprintReadOnly, VisibleInstanceOnly, meta = (ExposeOnSpawn = "true"))
+	UPROPERTY(BlueprintReadOnly, VisibleInstanceOnly)
 	FName RowName;
 };

@@ -30,16 +30,16 @@ ABaseBuildingActor::ABaseBuildingActor()
 	bIsHighlighted = false;
 	InitialDestination = FVector::ZeroVector;
 
+	RootComponent = CreateDefaultSubobject<USceneComponent>(TEXT("RootComponent"));
+
 	BoxCollision = CreateDefaultSubobject<UBoxComponent>(TEXT("BoxComponent"));
 	BoxCollision->SetCollisionResponseToChannel(ECC_Camera, ECR_Ignore);
 	BoxCollision->SetRelativeLocation(FVector(0.f, 0.f, 515.f));
-	RootComponent = BoxCollision;
+	BoxCollision->SetupAttachment(RootComponent);
 	
 	StaticMeshComponent = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("StaticMesh"));
 	StaticMeshComponent->SetCollisionResponseToChannel(ECC_Camera, ECR_Ignore);
 	StaticMeshComponent->SetupAttachment(RootComponent);
-	
-	ObjectHealthComponent = CreateDefaultSubobject<UObjectHealthComponent>(TEXT("ObjectHealthComponent"));
 }
 
 // Called when the game starts or when spawned
@@ -47,9 +47,12 @@ void ABaseBuildingActor::BeginPlay()
 {
 	Super::BeginPlay();
 	
-	if(OwnerPlayerController && GetLocalRole() != ROLE_Authority)
+	if(OwnerPlayerController)
 	{
-		OwnerPlayerController->OnActionWithObjectReleasedEvent.AddDynamic(this, &ABaseBuildingActor::UnHighlighted);
+		if(OwnerPlayerController->IsLocalController())
+		{
+			OwnerPlayerController->OnActionWithObjectReleasedEvent.AddDynamic(this, &ABaseBuildingActor::UnHighlighted);
+		}
 	}
 }
 
@@ -278,10 +281,11 @@ FVector ABaseBuildingActor::FindSpawnLocation()
 	? SpawnLocation.Location : FVector();
 }
 
-void ABaseBuildingActor::GiveOrderToTargetPawn_Implementation(const FVector& LocationToMove, AActor* ActorToMove)
+bool ABaseBuildingActor::GiveOrderToTargetPawn_Implementation(const FVector& LocationToMove, AActor* ActorToMove)
 {
 	InitialDestination = LocationToMove;
 	DrawDebugSphere(GetWorld(), LocationToMove,1200, 12, FColor::Cyan, false, 2.f);
+	return true;
 }
 
 EObjectTeam ABaseBuildingActor::FindObjectTeam_Implementation()
@@ -358,7 +362,9 @@ void ABaseBuildingActor::GenerateQueueSlots()
 
 void ABaseBuildingActor::HighlightedActor_Implementation(AStrategyGameBaseHUD* PlayerHUD)
 {
-	if(!ObjectHealthComponent->IsAlive()) return;
+	if(!IsBuildConstruction()) return;
+	if(!GetObjectHealthComponent()->IsAlive()) return;
+	
 	Server_Highlighted();
 	UDataTable* TempSpawnData = GetGameInstance()->GetSubsystem<UGameAIPawnSubsystem>()->GetPawnDataByTeam(OwnerTeam);
 	if(!TempSpawnData)
@@ -476,6 +482,11 @@ void ABaseBuildingActor::Server_RemoveItemFromQueue_Implementation(const FName& 
 
 void ABaseBuildingActor::Server_Highlighted_Implementation()
 {
+	if(!IsBuildConstruction())
+	{
+		//@todo Add UnHighlighted 
+		return;
+	}
 	bIsHighlighted = true;
 }
 

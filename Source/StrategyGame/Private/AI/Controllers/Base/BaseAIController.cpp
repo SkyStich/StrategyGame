@@ -78,13 +78,20 @@ void ABaseAIController::OnMoveCompleted(FAIRequestID RequestID, const FPathFollo
 	}
 }
 
-
 void ABaseAIController::MoveToGiveOrder(const FVector& Location, AActor* NewTargetActor)
 {
 	if(GetLocalRole() != ROLE_Authority) return;
 	
 	bOrderExecuted = true;
 	TargetActor = NewTargetActor;
-	MoveToLocation(Location, 15.f);
+
+	if(NewTargetActor)
+	{
+		MoveToActor(TargetActor, 25.f);
+	}
+	else
+	{
+		MoveToLocation(Location, 25.f);
+	}
 	ForceNetUpdate();
 }

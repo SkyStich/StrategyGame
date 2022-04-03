@@ -6,7 +6,7 @@
 #include "Player/Interfaces/HighlightedInterface.h"
 #include "Components/BoxComponent.h"
 #include "Net/RepLayout.h"
-#include "GameFramework/Actor.h"
+#include "Actors/BuilgindActors/ConstructionBuildingBase.h"
 #include "Interfaces/GiveOrderToTargetPawns.h"
 #include "Enums/TeamData.h"
 #include "Interfaces/FindObjectTeamInterface.h"
@@ -33,7 +33,7 @@ struct FQueueData
 };
 
 UCLASS(Abstract, Blueprintable)
-class STRATEGYGAME_API ABaseBuildingActor : public AActor, public IHighlightedInterface,
+class STRATEGYGAME_API ABaseBuildingActor : public AConstructionBuildingBase, public IHighlightedInterface,
 	public IGiveOrderToTargetPawns, public IFindObjectTeamInterface, public IFindObjectNameInterface, public IImprovementInterface
 {
 	GENERATED_BODY()
@@ -101,7 +101,7 @@ public:
 	virtual void Tick(float DeltaTime) override;
 	virtual void GetLifetimeReplicatedProps(TArray< FLifetimeProperty > & OutLifetimeProps) const override;
 	virtual void PreReplication(IRepChangedPropertyTracker& ChangedPropertyTracker) override;
-	virtual void GiveOrderToTargetPawn_Implementation(const FVector& LocationToMove, AActor* ActorToMove) override;
+	virtual bool GiveOrderToTargetPawn_Implementation(const FVector& LocationToMove, AActor* ActorToMove) override;
 	virtual EObjectTeam FindObjectTeam_Implementation() override;
 	virtual void HighlightedActor_Implementation(AStrategyGameBaseHUD* PlayerHUD) override;
 	virtual FText FindObjectName_Implementation() const override { return BuildName; }
@@ -173,9 +173,6 @@ private:
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Improvement", meta = (AllowPrivateAccess = "true"))
 	TArray<FImprovementLevelInfo> ImprovementLevelInfo;
-
-	UPROPERTY(VisibleDefaultsOnly, BlueprintReadOnly, Category = "HealthComponent", meta = (AllowPrivateAccess = "true"))
-	UObjectHealthComponent* ObjectHealthComponent;
 
 	/** true if build is highlighted */
 	bool bIsHighlighted;

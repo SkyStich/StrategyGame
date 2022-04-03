@@ -2,7 +2,7 @@
 
 
 #include "AI/Pawns/Base/BaseAIPawn.h"
-
+#include "Player/UI/ActionSlots/Base/ActionSpawnBuildingSlot.h"
 #include "DrawDebugHelpers.h"
 #include "AI/Controllers/Base/BaseAIController.h"
 #include "Player/HUD/StrategyGameBaseHUD.h"
@@ -11,6 +11,7 @@
 #include "Components/CapsuleComponent.h"
 #include "ActorComponents/Actors/ObjectHealthComponent.h"
 #include "GameInstance/Subsystems/GameAIPawnSubsystem.h"
+#include "Kismet/GameplayStatics.h"
 
 // Sets default values
 ABaseAIPawn::ABaseAIPawn()
@@ -79,9 +80,9 @@ void ABaseAIPawn::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifet
 	DOREPLIFETIME_CONDITION(ABaseAIPawn, PawnRowName, COND_InitialOnly);
 }
 
-void ABaseAIPawn::GiveOrderToTargetPawn_Implementation(const FVector& LocationToMove, AActor* ActorToMove)
+bool ABaseAIPawn::GiveOrderToTargetPawn_Implementation(const FVector& LocationToMove, AActor* ActorToMove)
 {
-	if(!ObjectHealthComponent->IsAlive()) return;
+	if(!ObjectHealthComponent->IsAlive()) return false;
 
 	StopAttack();
 	if(GetLocalRole() == ROLE_Authority)
@@ -90,8 +91,10 @@ void ABaseAIPawn::GiveOrderToTargetPawn_Implementation(const FVector& LocationTo
 		if(AIController)
 		{
 			AIController->MoveToGiveOrder(LocationToMove, ActorToMove);
+			return true;
 		}
 	}
+	return false;
 }
 
 void ABaseAIPawn::SetHealthDefault(float const Value)
@@ -112,5 +115,6 @@ void ABaseAIPawn::InitPawn(const FAIPawnData& PawnData)
 		AttackData.BaseDamage = PawnData.BaseDamage;
 		AttackData.BaseDelayBeforeUsed = PawnData.BaseDelayBeforeAttack;
 		AttackData.BaseDistanceForAttack = PawnData.BaseRangeAttack;
+		SetHealthDefault(PawnData.BaseHealth);
     }
 }

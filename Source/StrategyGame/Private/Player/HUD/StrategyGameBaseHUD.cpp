@@ -38,6 +38,9 @@ AStrategyGameBaseHUD::AStrategyGameBaseHUD()
 	
 	static ConstructorHelpers::FClassFinder<UBuildingSpawnProgressSlotBase> BuildingImprovementProgressSlotFinder(TEXT("/Game/Blueprints/UI/SpawnProgress/W_BuildingImprovementProgressSlot"));
 	if(BuildingImprovementProgressSlotFinder.Succeeded()) BuildingImprovementProgressSlotClass = BuildingImprovementProgressSlotFinder.Class;
+
+	static ConstructorHelpers::FClassFinder<UActionSpawnBuildingSlot> SpawnBuildingSlotClassFinder(TEXT("/Game/Blueprints/UI/Actions/W_SpawnBuilding"));
+	if(SpawnBuildingSlotClassFinder.Succeeded()) SpawnBuildingSlotClass = SpawnBuildingSlotClassFinder.Class;
 }
 
 void AStrategyGameBaseHUD::BeginPlay()

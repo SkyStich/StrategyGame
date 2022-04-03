@@ -20,12 +20,12 @@ struct FBaseBuilderData : public FTableRowBase
 	TArray<FResourcesData> ResourcesNeedToBuy;
 	
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
-	float TimeBeforeSpawn;
+	float MaxHealth;
 };
 
 USTRUCT(BlueprintType)
 struct FAllianceBuildersData : public FBaseBuilderData
-{
+{	
 	GENERATED_BODY()
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)

@@ -7,6 +7,7 @@
 #include "Blueprint/UserWidget.h"
 #include "Player/Interfaces/MatchPlayerHUDInterface.h"
 #include "Player/PlayerController/SpectatorPlayerController.h"
+#include "Player/UI/ActionSlots/Base/ActionSpawnBuildingSlot.h"
 #include "Player/UI/ActionSlots/Base/ActionSpawnPawnSlotBase.h"
 #include "Player/UI/HealthStatistics/HealthStatisticsBase.h"
 #include "StrategyGameBaseHUD.generated.h"
@@ -43,7 +44,7 @@ public:
 	TAssetSubclassOf<UImprovementSlotBase> GetImprovementSlotClass() const { return ImprovementSlotClass; }
 	TSubclassOf<class UBuildingSpawnProgressSlotBase> GetBuildingProgressSlotClass() const { return BuildingProgressSlotClass; }
 	TSubclassOf<class UBuildingSpawnProgressSlotBase> GetBuildingImprovementProgressSlotClass() const { return BuildingImprovementProgressSlotClass; }
-
+	TSubclassOf<UActionSpawnBuildingSlot> GetSpawnBuildingSlotClass() const { return SpawnBuildingSlotClass; } 
 	/** Set visibility to ESlateVisible::Visibility */
 	virtual void ShowHealthStatistics(AActor* Target);
 
@@ -75,20 +76,26 @@ protected:
 	UPROPERTY()
 	TAssetSubclassOf<UHealthStatisticsBase> HealthStatisticsWidgetClass;
 
+	/** Improvement */
 	UPROPERTY()
 	TAssetSubclassOf<UImprovementSlotBase> ImprovementSlotClass;
 	
 	UPROPERTY()
-	TAssetSubclassOf<UActionSpawnPawnSlotBase> ActionSpawnPawnSlotClass;
+	TSubclassOf<class UBuildingSpawnProgressSlotBase> BuildingImprovementProgressSlotClass;
 	
+	/** action slots */
 	UPROPERTY()
-	TAssetSubclassOf<class UActionGridBase> ActionGridClass;
-	
-	UPROPERTY()
-	TSubclassOf<class UBuildingSpawnProgressSlotBase> BuildingProgressSlotClass;
+	TSubclassOf<UActionSpawnBuildingSlot> SpawnBuildingSlotClass;
 
 	UPROPERTY()
-	TSubclassOf<class UBuildingSpawnProgressSlotBase> BuildingImprovementProgressSlotClass;
+	TAssetSubclassOf<UActionSpawnPawnSlotBase> ActionSpawnPawnSlotClass;
+
+	UPROPERTY()
+	TAssetSubclassOf<class UActionGridBase> ActionGridClass;
+
+	/** progress slots */
+	UPROPERTY()
+	TSubclassOf<class UBuildingSpawnProgressSlotBase> BuildingProgressSlotClass;
 
 	UPROPERTY()
 	UHealthStatisticsBase* HealthStatisticsWidget;

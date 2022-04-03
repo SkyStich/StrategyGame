@@ -29,5 +29,5 @@ public:
 	 *@param ActorToMove Target pawn to move
 	 */
 	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "Interface")
-	void GiveOrderToTargetPawn(const FVector& LocationToMove, AActor* ActorToMove);
+	bool GiveOrderToTargetPawn(const FVector& LocationToMove, AActor* ActorToMove);
 };

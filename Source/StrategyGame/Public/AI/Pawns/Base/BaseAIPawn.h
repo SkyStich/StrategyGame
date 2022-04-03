@@ -10,7 +10,6 @@
 #include "Interfaces/GiveOrderToTargetPawns.h"
 #include "Player/Interfaces/HighlightedInterface.h"
 #include "Structs/AllianceAIData.h"
-
 #include "BaseAIPawn.generated.h"
 
 class UObjectHealthComponent;
@@ -46,7 +45,7 @@ public:
 	// Sets default values for this pawn's properties
 	ABaseAIPawn();
 	
-	virtual void GiveOrderToTargetPawn_Implementation(const FVector& LocationToMove, AActor* ActorToMove) override;
+	virtual bool GiveOrderToTargetPawn_Implementation(const FVector& LocationToMove, AActor* ActorToMove) override;
 	virtual FText FindObjectName_Implementation() const override { return PawnName; }
 	virtual void StopAttack() {}
 	

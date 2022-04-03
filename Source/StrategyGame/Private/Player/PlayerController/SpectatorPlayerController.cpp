@@ -425,6 +425,7 @@ void ASpectatorPlayerController::Server_SpawnBuilding_Implementation(TSubclassOf
 		Building->SetOwnerController(this);
 		Building->SetTeamOwner(GetStrategyPlayerState()->GetPlayerTeam());
 		Building->SetBuildName(BuilderData->DisplayName);
+		Building->GetObjectHealthComponent()->CalculateBuildConstructHealth(BuilderData->MaxHealth);
 		Building->FinishSpawning(FTransform(Location));
 	}
 }
@@ -486,7 +487,7 @@ void ASpectatorPlayerController::MoveTargetPawnsPressed()
 		
 		if(ByArray->GetClass()->ImplementsInterface(UGiveOrderToTargetPawns::StaticClass()))
 		{
-			IGiveOrderToTargetPawns::Execute_GiveOrderToTargetPawn(ByArray, OutHit.Location, OutHit.GetActor());
+			IGiveOrderToTargetPawns::Execute_GiveOrderToTargetPawn(ByArray, OutHit.ImpactPoint, OutHit.GetActor());
 		}
 	}
 	if(GetNetMode() != NM_Standalone) Server_MoveTargetPawns(OutHit.TraceStart, OutHit.TraceEnd);
@@ -510,7 +511,7 @@ void ASpectatorPlayerController::Server_MoveTargetPawns_Implementation(const FVe
 	{
 		if(ByArray->GetClass()->ImplementsInterface(UGiveOrderToTargetPawns::StaticClass()))
 		{
-			IGiveOrderToTargetPawns::Execute_GiveOrderToTargetPawn(ByArray, OutHit.Location, OutHit.GetActor());
+			IGiveOrderToTargetPawns::Execute_GiveOrderToTargetPawn(ByArray, OutHit.ImpactPoint, OutHit.GetActor());
 		}
 	}
 }
@@ -525,6 +526,8 @@ void ASpectatorPlayerController::SpawnPreBuildAction(TSubclassOf<ABaseBuildingAc
 	{
 		APreBuildingActor* PreBuildingActor = nullptr;
 		FActorSpawnParameters Param;
+		Param.Owner = this;
+		Param.Instigator = GetPawnOrSpectator();
 		Param.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
 		PreBuildingActor = GetWorld()->SpawnActor<APreBuildingActor>(APreBuildingActor::StaticClass(), Param);
 		if(PreBuildingActor)
@@ -537,7 +540,7 @@ void ASpectatorPlayerController::SpawnPreBuildAction(TSubclassOf<ABaseBuildingAc
 			PreBuildingActor->SetBuildRowName(RowName);
 			PreBuildingActor->SetBuildingActor(BuildActor);
 				
-			UGameplayStatics::FinishSpawningActor(PreBuildingActor, FTransform(FVector(0.f)));
+			PreBuildingActor->FinishSpawning(FTransform(FVector(0.f)));
 		}
 	}
 }

@@ -9,6 +9,7 @@
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FHealthEnded, AActor*, Actor);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FHealthChanged, int32, NewHealth);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(FStopRegeneration);
 
 UCLASS( ClassGroup=(Custom), meta=(BlueprintSpawnableComponent) )
 class STRATEGYGAME_API UObjectHealthComponent : public UActorComponent, public IHealthInterface
@@ -20,6 +21,9 @@ class STRATEGYGAME_API UObjectHealthComponent : public UActorComponent, public I
 
 	UFUNCTION()
 	void OnRep_IsDeath();
+
+	UFUNCTION()
+	void OnRep_RegenerationValue();
 	
 	/**
 	 * Set current health
@@ -34,9 +38,7 @@ class STRATEGYGAME_API UObjectHealthComponent : public UActorComponent, public I
 	 * @param Value Value bu which the value will be increase
 	 */
 	void IncreaseCurrentHeath(int32 const Value);
-
-	void StartHealthRegeneration();
-	void StopHealthRegeneration();
+	
 	void Regeneration();
 
 public:	
@@ -51,8 +53,35 @@ public:
 	 * 
 	 * @param Value Value for set new value
 	 */
-	UFUNCTION(BlueprintCallable, BlueprintAuthorityOnly, Category = "Health|Defauly")
+	UFUNCTION(BlueprintCallable, Category = "Health|Defauly")
 	void SetMaxHealthByDefault(int32 const Value);
+
+	/**
+	* Add value to regeneration. if current value == 0, new value > 0; Start regeneration timer;
+	* 
+	* @param Value Value for Add
+	*/
+	UFUNCTION()
+	void AddRegenerationValuePerSec(float const Value);
+	
+	/**
+	* Set Max health value.
+	* 
+	* @param Value Value for set new value
+	*/
+	UFUNCTION(BlueprintCallable, Category = "Health|Defauly")
+	void SetMaxHealth(int32 const Value);
+
+	/**
+	* Set Max health value by default. Call on created object
+	* 
+	* @param Value Value for set new value
+	*/
+	UFUNCTION(BlueprintCallable, Category = "Health|Defauly")
+	void CalculateBuildConstructHealth(int32 const Value);
+	
+	void StartHealthRegeneration();
+	void StopHealthRegeneration();
 
 	UFUNCTION(BlueprintPure, Category = "HealthComponent")
 	int32 GetCurrentObjectHealth() const { return CurrentHealth; }
@@ -87,6 +116,9 @@ public:
 	UPROPERTY(BlueprintAssignable, Category = "HealthComponent")
 	FHealthChanged OnHealthChanged;
 
+	UPROPERTY(BlueprintAssignable, Category = "HealthComponent")
+	FStopRegeneration OnStopRegeneration;
+
 private:
 
 	UPROPERTY(ReplicatedUsing = OnRep_CurrentHealth)
@@ -98,7 +130,7 @@ private:
 	UPROPERTY(ReplicatedUsing = OnRep_IsDeath)
 	bool bDeath;
 	
-	UPROPERTY(Replicated)
+	UPROPERTY(ReplicatedUsing = OnRep_RegenerationValue)
 	float RegenerationValuePerSec;
 
 	/** time between recovery of health */

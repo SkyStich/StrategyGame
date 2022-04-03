@@ -22,3 +22,4 @@ void UActionSpawnBuildingSlot::SpawnBuilding()
 		PC->SpawnPreBuildAction(USyncLoadLibrary::SyncLoadClass<ABaseBuildingActor>(this, SpawnBuildClass), RowName);
 	}
 }
+

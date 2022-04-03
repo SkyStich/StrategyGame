@@ -10,9 +10,9 @@ UObjectHealthComponent::UObjectHealthComponent()
 	PrimaryComponentTick.bCanEverTick = false;
 	
 	MaxHealth = 100;
-	CurrentHealth = 100;
-	RegenerationValuePerSec = 10.f;
-	RegenerationTime = 1.f;
+	CurrentHealth = 1;
+	RegenerationValuePerSec = 0.f;
+	RegenerationTime = 0.25f;
 	bDeath = false;
 
 	SetIsReplicatedByDefault(true);
@@ -24,7 +24,7 @@ void UObjectHealthComponent::GetLifetimeReplicatedProps(TArray<FLifetimeProperty
 
 	DOREPLIFETIME(UObjectHealthComponent, CurrentHealth);
 	DOREPLIFETIME(UObjectHealthComponent, bDeath);
-	DOREPLIFETIME_CONDITION(UObjectHealthComponent, MaxHealth, COND_InitialOnly);
+	DOREPLIFETIME(UObjectHealthComponent, MaxHealth);
 }
 
 // Called when the game starts
@@ -38,12 +38,27 @@ void UObjectHealthComponent::BeginPlay()
 	}
 }
 
+void UObjectHealthComponent::SetMaxHealth(int32 const Value)
+{
+	if(GetOwnerRole() != ROLE_Authority) return;
+
+	MaxHealth = Value;
+}
+
 void UObjectHealthComponent::SetMaxHealthByDefault(int32 const Value)
 {
 	if(GetOwnerRole() != ROLE_Authority) return;
 
 	MaxHealth = Value;
 	CurrentHealth = Value;
+}
+
+void UObjectHealthComponent::CalculateBuildConstructHealth(int32 const Value)
+{
+	if(GetOwnerRole() != ROLE_Authority) return;
+
+	MaxHealth = Value;
+	CurrentHealth = Value * 0.1;
 }
 
 void UObjectHealthComponent::OnTakeAnyDamage(AActor* DamagedActor, float Damage, const UDamageType* DamageType, AController* InstigatedBy, AActor* DamageCauser)
@@ -71,6 +86,23 @@ void UObjectHealthComponent::IncreaseCurrentHeath(int32 const Value)
 	OnRep_CurrentHealth();
 }
 
+void UObjectHealthComponent::AddRegenerationValuePerSec(float const Value)
+{	
+	RegenerationValuePerSec += Value;
+	
+	if(RegenerationValuePerSec <= 0)
+	{
+		StopHealthRegeneration();
+	}
+	else
+	{
+		if(!GetWorld()->GetTimerManager().IsTimerActive(RegenerationHandle))
+		{
+			StartHealthRegeneration();
+		}
+	}
+}
+
 void UObjectHealthComponent::StartHealthRegeneration()
 {
 	if(GetOwnerRole() != ROLE_Authority) return;
@@ -80,12 +112,25 @@ void UObjectHealthComponent::StartHealthRegeneration()
 
 void UObjectHealthComponent::Regeneration()
 {
+	if(RegenerationValuePerSec <= 0) StopHealthRegeneration();
+	
 	IncreaseCurrentHeath(RegenerationValuePerSec * RegenerationTime);
 	if(CurrentHealth >= MaxHealth)
 	{
 		StopHealthRegeneration();
+		RegenerationValuePerSec = 0;
+		OnRep_RegenerationValue();
 	}
 }
+
+void UObjectHealthComponent::OnRep_RegenerationValue()
+{
+	if(RegenerationValuePerSec <= 0)
+	{
+		OnStopRegeneration.Broadcast();
+	}
+}
+
 
 void UObjectHealthComponent::StopHealthRegeneration()
 {
