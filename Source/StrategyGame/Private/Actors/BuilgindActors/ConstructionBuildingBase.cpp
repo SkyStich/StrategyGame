@@ -23,7 +23,7 @@ void AConstructionBuildingBase::BeginPlay()
 
 	if(GetLocalRole() == ROLE_Authority)
 	{
-		GetObjectHealthComponent()->OnStopRegeneration.AddDynamic(this, &AConstructionBuildingBase::OnBuildConstructionComplete);
+		GetObjectHealthComponent()->OnStopRegeneration.AddDynamic(this, &AConstructionBuildingBase::OnStopRegeneration);
 	}	
 }
 
@@ -34,9 +34,13 @@ void AConstructionBuildingBase::GetLifetimeReplicatedProps(TArray<FLifetimePrope
 	DOREPLIFETIME(AConstructionBuildingBase, bBuildingConstruction);
 }
 
-void AConstructionBuildingBase::OnBuildConstructionComplete()
+void AConstructionBuildingBase::OnStopRegeneration()
 {
-	bBuildingConstruction = true;
+	if(GetObjectHealthComponent()->GetCurrentObjectHealth() >= GetObjectHealthComponent()->GetMaxObjectHealth())
+	{
+		bBuildingConstruction = true;
+		ConstructionSucceeded();
+	}
 }
 
 void AConstructionBuildingBase::StartConstruction(float const Value)

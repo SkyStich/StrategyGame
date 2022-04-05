@@ -22,11 +22,6 @@ void AResourceProducingBuildingsBase::GetLifetimeReplicatedProps(TArray<FLifetim
 void AResourceProducingBuildingsBase::BeginPlay()
 {
 	Super::BeginPlay();
-
-	if(GetLocalRole() == ROLE_Authority)
-	{
-		SetResourcesTimer();
-	}
 }
 
 void AResourceProducingBuildingsBase::UpdateResources()
@@ -40,6 +35,11 @@ void AResourceProducingBuildingsBase::UpdateResources()
 			GetOwnerController()->AddResourcesByType(ByArray.Key, ByArray.Value);
 		}
 	}
+}
+
+void AResourceProducingBuildingsBase::ConstructionSucceeded()
+{
+	SetResourcesTimer();
 }
 
 void AResourceProducingBuildingsBase::IncreaseResourcesTime(const float Value)

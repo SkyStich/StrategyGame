@@ -19,7 +19,7 @@ class STRATEGYGAME_API AConstructionBuildingBase : public AActor, public IRepair
 	void StartConstruction(float const Value);
 
 	UFUNCTION()
-	void OnBuildConstructionComplete();
+	void OnStopRegeneration();
 	
 public:	
 	// Sets default values for this actor's properties
@@ -38,6 +38,7 @@ public:
 protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
+	virtual void ConstructionSucceeded() {}
 
 private:
     
