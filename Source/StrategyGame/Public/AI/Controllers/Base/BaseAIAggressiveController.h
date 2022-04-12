@@ -24,7 +24,7 @@ protected:
 	virtual void BeginPlay() override;
 	virtual void StartLoseTimer();
 	virtual void StartCheckDistanceForAttack();
-	virtual void StopCheckDistanceForAttack();
+	virtual void StopCheckDistanceForAttack() override;
 
 	/** return true if can be attack with this distance */
 	UFUNCTION()
@@ -38,18 +38,8 @@ public:
 	ABaseAIAggressiveController(const FObjectInitializer& ObjectInitializer);
 	virtual void MoveToGiveOrder(const FVector& Location, AActor* NewTargetActor) override;
 	virtual void StartChasingTarget();
-	virtual void StopChasingTarget();
+	virtual void StopChasingTarget() override;
 
 	/** call if old target be killed or leave see point */
 	virtual void FindNewTarget();
-
-protected:
-
-	FTimerHandle LoseTargetHandle;
-
-private:
-
-	float LoseTargetTime;
-
-	FTimerHandle CheckDistanceForAttackHandle;
 };

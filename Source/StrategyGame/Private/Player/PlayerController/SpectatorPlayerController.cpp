@@ -81,7 +81,23 @@ void ASpectatorPlayerController::SetupInputComponent()
 	InputComponent->BindAction("ActionWithObject", IE_Released, this, &ASpectatorPlayerController::OnSelectActorReleased);
 
 	InputComponent->BindAction("OrderToTarget", IE_Released, this, &ASpectatorPlayerController::MoveTargetPawnsPressed);
+	InputComponent->BindAction("TEST", IE_Released, this, &ASpectatorPlayerController::Test);
 }
+
+void ASpectatorPlayerController::Test()
+{
+	TArray<AActor*> Out;
+	UGameplayStatics::GetAllActorsOfClass(this, ABaseAIPawn::StaticClass(), Out);
+	for(auto ByArray : Out)
+	{
+		if(ByArray)
+		{
+			Cast<ABaseAIController>(Cast<APawn>(ByArray)->Controller)->ToggleAggressiveType();
+			return;
+		}
+	}
+}
+
 
 void ASpectatorPlayerController::UpdateRotation(float DeltaTime)
 {

@@ -3,13 +3,12 @@
 
 #include "AI/Controllers/Base/BaseAIAggressiveController.h"
 #include "AI/Pawns/Base/BaseAggressivePawn.h"
+#include "Kismet/KismetSystemLibrary.h"
 #include "Perception/AISenseConfig_Sight.h"
 
 ABaseAIAggressiveController::ABaseAIAggressiveController(const FObjectInitializer& ObjectInitializer)
 {
 	SenseConfigInit();	
-	
-	LoseTargetTime = 8.f;
 }
 
 void ABaseAIAggressiveController::BeginPlay()
@@ -47,7 +46,8 @@ void ABaseAIAggressiveController::OnSinglePerceptionUpdated(AActor* Actor, FAISt
 	}
 	
 	if(Actor != TargetActor) return;
-	StartLoseTimer();
+
+	FindNewTarget();
 }
 
 ABaseAggressivePawn* ABaseAIAggressiveController::GetAggressivePawn() const
@@ -57,6 +57,13 @@ ABaseAggressivePawn* ABaseAIAggressiveController::GetAggressivePawn() const
 
 void ABaseAIAggressiveController::StartLoseTimer()
 {
+	if(!TargetActor)
+	{
+		GetWorld()->GetTimerManager().ClearTimer(LoseTargetHandle);
+		StopCheckDistanceForAttack();
+		return;
+	}
+	
 	FTimerDelegate TimerDelegate;
 	TimerDelegate.BindLambda([&]() -> void
 	{
@@ -65,7 +72,7 @@ void ABaseAIAggressiveController::StartLoseTimer()
 		StopCheckDistanceForAttack();
 		StopMovement();
 	});
-	GetWorld()->GetTimerManager().SetTimer(LoseTargetHandle, TimerDelegate, LoseTargetTime, false);
+	GetWorld()->GetTimerManager().SetTimer(LoseTargetHandle, TimerDelegate, 6.f, false);
 }
 
 void ABaseAIAggressiveController::StartCheckDistanceForAttack()
@@ -82,7 +89,7 @@ void ABaseAIAggressiveController::CheckDistanceForAttack()
 		StopCheckDistanceForAttack();
 		return;
 	}
-
+	
 	ABaseAggressivePawn* AggressivePawn = GetAggressivePawn();
 	if(!AggressivePawn) return;
 
@@ -94,6 +101,7 @@ void ABaseAIAggressiveController::CheckDistanceForAttack()
 		AggressivePawn->StartAttackTargetActor(TargetActor);
 		StopCheckDistanceForAttack();
 	}
+
 }
 
 void ABaseAIAggressiveController::StopCheckDistanceForAttack()
@@ -123,6 +131,12 @@ void ABaseAIAggressiveController::StartChasingTarget()
 
 	MoveToActor(TargetActor, 15);
 	StartCheckDistanceForAttack();
+
+	/** Limitation Check for Pursuit Range */
+	if(MaxPursuitDistance <= 0 || GetWorld()->GetTimerManager().IsTimerActive(CheckPursuitDistanceHandle)) return;
+
+	/** verification of reaching a rapid distance of infection */
+	GetWorld()->GetTimerManager().SetTimer(CheckPursuitDistanceHandle, this, &ABaseAIAggressiveController::CheckHoldingDistance, 1.f, true);
 }
 
 void ABaseAIAggressiveController::StopChasingTarget()
@@ -130,27 +144,33 @@ void ABaseAIAggressiveController::StopChasingTarget()
 	if(GetLocalRole() == ROLE_Authority)
 	{
 		StopMovement();
-		
 	}
 }
 
 void ABaseAIAggressiveController::FindNewTarget()
 {
 	TArray<AActor*> PerceivedActors;
-	PerceptionComponent->GetCurrentlyPerceivedActors(UAISense_Sight::StaticClass(), PerceivedActors);
-
-	if(PerceivedActors.Num() <= 0) return;
-
-	for(auto& ByArray : PerceivedActors)
+	GetPerceptionComponent()->GetCurrentlyPerceivedActors(UAISense_Sight::StaticClass(), PerceivedActors);
+	if(PerceivedActors.Num() > 0)
 	{
-		if(!ByArray->CanBeDamaged()) continue;
-		if(!ByArray->GetClass()->ImplementsInterface(UFindObjectTeamInterface::StaticClass())) continue;
+		Algo::Sort(PerceivedActors, [&](AActor* First, AActor* Second) -> bool
+        {
+            return FVector::Dist(GetPawn()->GetActorLocation(), First->GetActorLocation()) < FVector::Dist(GetPawn()->GetActorLocation(), Second->GetActorLocation());
+        });
 
-		if(IFindObjectTeamInterface::Execute_FindObjectTeam(ByArray) == IFindObjectTeamInterface::Execute_FindObjectTeam(GetPawn())) continue;
-
-		TargetActor = ByArray;
-		MoveToActor(TargetActor, 15.f);
-		StartCheckDistanceForAttack();
-		return;
+		for(const auto& ByArray : PerceivedActors)
+		{
+			if(IFindObjectTeamInterface::Execute_FindObjectTeam(ByArray) == GetAggressivePawn()->GetTeam()
+				|| !ByArray->GetClass()->ImplementsInterface(UFindObjectTeamInterface::StaticClass())
+				|| !ByArray->CanBeDamaged()) continue;
+			
+			TargetActor = ByArray;
+			break;
+		}
+		if(TargetActor)
+		{
+			MoveToGiveOrder(TargetActor->GetActorLocation(), TargetActor);
+			StartCheckDistanceForAttack();
+		}
 	}
 }

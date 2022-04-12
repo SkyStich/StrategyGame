@@ -25,7 +25,8 @@ class STRATEGYGAME_API ASpectatorPlayerController : public APlayerController, pu
 {
 	GENERATED_BODY()
 
-
+	UFUNCTION()
+	void Test();
 	/** Helper for find spectator camera component from controlled pawn */
 	USpectatorCameraComponent* GetSpectatorCameraComponent();
 

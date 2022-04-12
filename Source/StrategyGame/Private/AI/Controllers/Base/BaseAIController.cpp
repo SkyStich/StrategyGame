@@ -3,8 +3,10 @@
 #include "AI/Controllers/Base/BaseAIController.h"
 
 #include "DrawDebugHelpers.h"
+#include "GeneratedCodeHelpers.h"
 #include "ActorComponents/Actors/ObjectHealthComponent.h"
 #include "Blueprint/AIBlueprintHelperLibrary.h"
+#include "Kismet/KismetSystemLibrary.h"
 #include "Perception/AIPerceptionComponent.h"
 #include "Perception/AISenseConfig_Sight.h"
 #include "Net/UnrealNetwork.h"
@@ -16,6 +18,9 @@ ABaseAIController::ABaseAIController()
 	bReplicates = true;
 	NetUpdateFrequency = 5.f;
 	bOrderExecuted = false;
+	MaxPursuitDistance = 800;
+
+	AggressiveType = EAIAggressiveType::Holding;
 }
 
 void ABaseAIController::BeginPlay()
@@ -72,9 +77,29 @@ void ABaseAIController::OnMoveCompleted(FAIRequestID RequestID, const FPathFollo
 {
 	Super::OnMoveCompleted(RequestID, Result);
 	
-	if(Result.Code == EPathFollowingResult::Success)
+	if(Result.Code == EPathFollowingResult::Success || Result.Code == EPathFollowingResult::Aborted)
 	{
 		bOrderExecuted = false;
+
+		InitialOrderPoint = GetPawn()->GetActorLocation();
+	}
+}
+
+void ABaseAIController::CheckHoldingDistance()
+{
+	if(FVector::Dist(GetPawn()->GetActorLocation(), InitialOrderPoint) >= MaxPursuitDistance)
+	{
+		TargetActor = nullptr;
+		StopCheckDistanceForAttack();
+		StopChasingTarget();
+
+		if(GetAggressiveType() == EAIAggressiveType::Holding)
+		{
+			MoveToLocation(InitialOrderPoint, 15.f);
+		}
+		else StopMovement();
+		
+		GetWorld()->GetTimerManager().ClearTimer(CheckPursuitDistanceHandle);
 	}
 }
 
@@ -84,6 +109,7 @@ void ABaseAIController::MoveToGiveOrder(const FVector& Location, AActor* NewTarg
 	
 	bOrderExecuted = true;
 	TargetActor = NewTargetActor;
+	InitialOrderPoint = GetPawn()->GetActorLocation();
 
 	if(NewTargetActor)
 	{
@@ -94,4 +120,54 @@ void ABaseAIController::MoveToGiveOrder(const FVector& Location, AActor* NewTarg
 		MoveToLocation(Location, 25.f);
 	}
 	ForceNetUpdate();
+}
+
+void ABaseAIController::ToggleAggressiveType()
+{
+	switch (AggressiveType)
+	{
+		case EAIAggressiveType::Holding:
+		{
+			AggressiveType = EAIAggressiveType::Pursuit;
+			OnPursuitTypeActive();
+			break;
+		}
+		case EAIAggressiveType::Pursuit:
+		{
+			AggressiveType = EAIAggressiveType::BuildDestroyed;
+			break;
+		}
+		case EAIAggressiveType::BuildDestroyed:
+		{
+			AggressiveType = EAIAggressiveType::WaitCommand;
+			break;
+		}
+		case EAIAggressiveType::WaitCommand:
+		{
+			AggressiveType = EAIAggressiveType::Attack;
+			break;
+		}	
+		case EAIAggressiveType::Attack:
+		{
+			AggressiveType = EAIAggressiveType::Holding;
+			OnHoldingTypeActive();
+			break;
+		}
+		default: break;
+	}
+}
+
+void ABaseAIController::OnHoldingTypeActive()
+{
+	MaxPursuitDistance = 800.f;
+}
+
+void ABaseAIController::OnPursuitTypeActive()
+{
+	MaxPursuitDistance = 1400.f;
+}
+
+void ABaseAIController::OnBuildDestroyedTypeActive()
+{
+	
 }

@@ -29,6 +29,7 @@ ABaseBuildingActor::ABaseBuildingActor()
 	NetUpdateFrequency = 1.f;
 	bIsHighlighted = false;
 	InitialDestination = FVector::ZeroVector;
+	Tags.Add("Building");
 
 	RootComponent = CreateDefaultSubobject<USceneComponent>(TEXT("RootComponent"));
 
