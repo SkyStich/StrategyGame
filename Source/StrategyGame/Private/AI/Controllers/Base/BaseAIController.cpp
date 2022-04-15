@@ -17,8 +17,9 @@ ABaseAIController::ABaseAIController()
 	bAttachToPawn = true;
 	bReplicates = true;
 	NetUpdateFrequency = 5.f;
-	bOrderExecuted = false;
+	OrderType = EOrderType::OrderExecuted;
 	MaxPursuitDistance = 800;
+	FilterName = "";
 
 	AggressiveType = EAIAggressiveType::Holding;
 }
@@ -79,7 +80,7 @@ void ABaseAIController::OnMoveCompleted(FAIRequestID RequestID, const FPathFollo
 	
 	if(Result.Code == EPathFollowingResult::Success || Result.Code == EPathFollowingResult::Aborted)
 	{
-		bOrderExecuted = false;
+		if(OrderType == EOrderType::MoveToLocation) OrderType = EOrderType::OrderExecuted;
 
 		InitialOrderPoint = GetPawn()->GetActorLocation();
 	}
@@ -106,18 +107,18 @@ void ABaseAIController::CheckHoldingDistance()
 void ABaseAIController::MoveToGiveOrder(const FVector& Location, AActor* NewTargetActor)
 {
 	if(GetLocalRole() != ROLE_Authority) return;
-	
-	bOrderExecuted = true;
 	TargetActor = NewTargetActor;
 	InitialOrderPoint = GetPawn()->GetActorLocation();
 
 	if(NewTargetActor)
 	{
 		MoveToActor(TargetActor, 25.f);
+		OrderType = EOrderType::MoveToTarget;
 	}
 	else
 	{
 		MoveToLocation(Location, 25.f);
+		OrderType = EOrderType::MoveToLocation;
 	}
 	ForceNetUpdate();
 }
@@ -160,14 +161,17 @@ void ABaseAIController::ToggleAggressiveType()
 void ABaseAIController::OnHoldingTypeActive()
 {
 	MaxPursuitDistance = 800.f;
+	FilterName = "";
 }
 
 void ABaseAIController::OnPursuitTypeActive()
 {
 	MaxPursuitDistance = 1400.f;
+	FilterName = "";
 }
 
 void ABaseAIController::OnBuildDestroyedTypeActive()
 {
-	
+	MaxPursuitDistance = 1400.f;
+	FilterName = "Building";
 }

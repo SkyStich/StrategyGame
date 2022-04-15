@@ -4,8 +4,6 @@
 
 #include "CoreMinimal.h"
 #include "AIController.h"
-#include "Enums/TeamData.h"
-#include "Components/SphereComponent.h"
 #include "Perception/AISense_Sight.h"
 #include "Perception/PawnSensingComponent.h"
 #include "Enums/AIAggressiveTypeEnum.h"
@@ -35,6 +33,8 @@ public:
 
 	EAIAggressiveType GetAggressiveType() const { return AggressiveType; }
 	bool IsWaitCommandType() const { return AggressiveType == EAIAggressiveType::WaitCommand; }
+	EOrderType GetOrderType() const { return OrderType; }
+	FName GetFilterName() const { return FilterName; }
 
 	UFUNCTION(BlueprintCallable)
 	void ToggleAggressiveType();
@@ -59,7 +59,7 @@ protected:
 	AActor* TargetActor;
 	
 	UPROPERTY()
-	bool bOrderExecuted;
+	EOrderType OrderType;
 	
 	UPROPERTY(EditDefaultsOnly, meta = (AllowPrivateAccess = "true"))
 	UAISenseConfig_Sight* SightConfig;
@@ -74,14 +74,21 @@ protected:
 	UPROPERTY()
 	FTimerHandle CheckPursuitDistanceHandle;
 
+	/** maximum target pursuit distance */
 	UPROPERTY()
 	float MaxPursuitDistance;
 
 	UPROPERTY()
 	FTimerHandle CheckDistanceForAttackHandle;
 
+
 private:
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Replicated, Category = "AggressiveType", meta = (AllowPrivateAccess = "true"))
 	EAIAggressiveType AggressiveType;
+
+	/** the key name for filtering new targets that are included in perception. 
+	* It is recorded when the type of AI behavior changes. */
+	UPROPERTY()
+	FName FilterName;
 };

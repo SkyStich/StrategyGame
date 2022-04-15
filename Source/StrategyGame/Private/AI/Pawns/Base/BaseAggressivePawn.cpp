@@ -65,6 +65,12 @@ void ABaseAggressivePawn::AttackTargetActor(AActor* Target)
 		ABaseAIAggressiveController* AggressiveController = Cast<ABaseAIAggressiveController>(Controller);
 		if(AggressiveController)
 		{
+			if(AggressiveController->GetOrderType() != EOrderType::MoveToTarget)
+			{
+				StopAttack();
+				AggressiveController->FindNewTarget();
+				return;
+			}
 			AggressiveController->StartChasingTarget();
 		}
 		return;

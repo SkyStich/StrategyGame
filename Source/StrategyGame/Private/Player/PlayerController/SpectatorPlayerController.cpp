@@ -81,23 +81,7 @@ void ASpectatorPlayerController::SetupInputComponent()
 	InputComponent->BindAction("ActionWithObject", IE_Released, this, &ASpectatorPlayerController::OnSelectActorReleased);
 
 	InputComponent->BindAction("OrderToTarget", IE_Released, this, &ASpectatorPlayerController::MoveTargetPawnsPressed);
-	InputComponent->BindAction("TEST", IE_Released, this, &ASpectatorPlayerController::Test);
 }
-
-void ASpectatorPlayerController::Test()
-{
-	TArray<AActor*> Out;
-	UGameplayStatics::GetAllActorsOfClass(this, ABaseAIPawn::StaticClass(), Out);
-	for(auto ByArray : Out)
-	{
-		if(ByArray)
-		{
-			Cast<ABaseAIController>(Cast<APawn>(ByArray)->Controller)->ToggleAggressiveType();
-			return;
-		}
-	}
-}
-
 
 void ASpectatorPlayerController::UpdateRotation(float DeltaTime)
 {
@@ -486,12 +470,14 @@ void ASpectatorPlayerController::MoveTargetPawnsPressed()
 {
 	if(TargetActors.Num() <= 0) return;
 
+#if UE_BUILD_DEVELOPMENT
 	/** check on team */
 	for(const auto& ByArray : TargetActors)
 	{
-		if(!ByArray->GetClass()->ImplementsInterface(UFindObjectTeamInterface::StaticClass())) return;
-		if(Execute_FindObjectTeam(ByArray) != FindObjectTeam_Implementation()) return;
+		if(!ByArray->GetClass()->ImplementsInterface(UFindObjectTeamInterface::StaticClass()) ||
+			Execute_FindObjectTeam(ByArray) != FindObjectTeam_Implementation()) return;
 	}
+#endif
 	
 	FHitResult OutHit;
 	ETraceTypeQuery const TraceChannel = UCollisionProfile::Get()->ConvertToTraceType(bIgnoreHighlighted ? ECC_Camera : ECC_GameTraceChannel1);
@@ -513,12 +499,14 @@ void ASpectatorPlayerController::Server_MoveTargetPawns_Implementation(const FVe
 {
 	if(TargetActors.Num() <= 0) return;
 
+#if UE_SERVER
 	/** check on team */
 	for(const auto& ByArray : TargetActors)
 	{
-		if(!ByArray->GetClass()->ImplementsInterface(UFindObjectTeamInterface::StaticClass())) return;
-		if(Execute_FindObjectTeam(ByArray) != FindObjectTeam_Implementation()) return;
+		if(!ByArray->GetClass()->ImplementsInterface(UFindObjectTeamInterface::StaticClass())
+			|| Execute_FindObjectTeam(ByArray) != FindObjectTeam_Implementation()) return;
 	}
+#endif
 	
 	FHitResult OutHit;
 	ECollisionChannel const TraceChannel = bIgnoreHighlighted ? ECC_Camera : ECC_GameTraceChannel1;

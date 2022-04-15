@@ -25,6 +25,7 @@ protected:
 	virtual void StartLoseTimer();
 	virtual void StartCheckDistanceForAttack();
 	virtual void StopCheckDistanceForAttack() override;
+	virtual void OnBuildDestroyedTypeActive() override;
 
 	/** return true if can be attack with this distance */
 	UFUNCTION()
@@ -40,6 +41,8 @@ public:
 	virtual void StartChasingTarget();
 	virtual void StopChasingTarget() override;
 
-	/** call if old target be killed or leave see point */
-	virtual void FindNewTarget();
+	/** call if old target be killed or leave see point
+	 *return true if can find > 1 actors
+	 */
+	virtual bool FindNewTarget();
 };
