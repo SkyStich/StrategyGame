@@ -52,6 +52,8 @@ protected:
 	virtual void OnHoldingTypeActive();
 	virtual void OnPursuitTypeActive();
 	virtual void OnBuildDestroyedTypeActive();
+	virtual void OnWaitCommandTypeActive();
+	virtual void OnAttackTypeActive();
 
 protected:
 
@@ -80,7 +82,6 @@ protected:
 
 	UPROPERTY()
 	FTimerHandle CheckDistanceForAttackHandle;
-
 
 private:
 

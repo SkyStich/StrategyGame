@@ -136,16 +136,19 @@ void ABaseAIController::ToggleAggressiveType()
 		case EAIAggressiveType::Pursuit:
 		{
 			AggressiveType = EAIAggressiveType::BuildDestroyed;
+			OnBuildDestroyedTypeActive();
 			break;
 		}
 		case EAIAggressiveType::BuildDestroyed:
 		{
 			AggressiveType = EAIAggressiveType::WaitCommand;
+			OnWaitCommandTypeActive();
 			break;
 		}
 		case EAIAggressiveType::WaitCommand:
 		{
 			AggressiveType = EAIAggressiveType::Attack;
+			OnAttackTypeActive();
 			break;
 		}	
 		case EAIAggressiveType::Attack:
@@ -175,3 +178,18 @@ void ABaseAIController::OnBuildDestroyedTypeActive()
 	MaxPursuitDistance = 1400.f;
 	FilterName = "Building";
 }
+
+void ABaseAIController::OnWaitCommandTypeActive()
+{
+	FilterName = "";
+	StopChasingTarget();
+	StopCheckDistanceForAttack();
+	GetPerceptionComponent()->ToggleActive();
+}
+
+void ABaseAIController::OnAttackTypeActive()
+{
+	GetPerceptionComponent()->ToggleActive();
+	MaxPursuitDistance = 0.f;
+}
+

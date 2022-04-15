@@ -26,6 +26,7 @@ protected:
 	virtual void StartCheckDistanceForAttack();
 	virtual void StopCheckDistanceForAttack() override;
 	virtual void OnBuildDestroyedTypeActive() override;
+	virtual void OnWaitCommandTypeActive() override;
 
 	/** return true if can be attack with this distance */
 	UFUNCTION()

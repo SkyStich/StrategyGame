@@ -230,3 +230,10 @@ void ABaseAIAggressiveController::OnBuildDestroyedTypeActive()
 
 	FindNewTarget();
 }
+
+void ABaseAIAggressiveController::OnWaitCommandTypeActive()
+{
+	Super::OnWaitCommandTypeActive();
+
+	GetAggressivePawn()->StopAttack();
+}
