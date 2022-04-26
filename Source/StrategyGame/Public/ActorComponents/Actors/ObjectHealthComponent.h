@@ -49,7 +49,8 @@ public:
 	virtual bool IsObjectAlive_Implementation() override { return IsAlive(); }
 
 	/**
-	 * Set Max health value by default. Call on created object
+	 * Set Max health value by default. Call on created object with game mode on begin play.
+	 * Set 
 	 * 
 	 * @param Value Value for set new value
 	 */

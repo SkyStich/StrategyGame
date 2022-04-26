@@ -41,6 +41,12 @@ AStrategyGameBaseHUD::AStrategyGameBaseHUD()
 
 	static ConstructorHelpers::FClassFinder<UActionSpawnBuildingSlot> SpawnBuildingSlotClassFinder(TEXT("/Game/Blueprints/UI/Actions/W_SpawnBuilding"));
 	if(SpawnBuildingSlotClassFinder.Succeeded()) SpawnBuildingSlotClass = SpawnBuildingSlotClassFinder.Class;
+
+	static ConstructorHelpers::FClassFinder<UDestroyHighlightedObjectSlot> DestroyObjectFinder(TEXT("/Game/Blueprints/UI/Actions/W_DestroyObjectSlot"));
+	if(DestroyObjectFinder.Succeeded()) DestroyHighlightedObjectSlotClass = DestroyObjectFinder.Class;
+
+	static ConstructorHelpers::FClassFinder<UToggleTypeOfBehavior> ToggleBehaviorFinder(TEXT("/Game/Blueprints/UI/Actions/W_ToggleBehaviorOfType"));
+	if(ToggleBehaviorFinder.Succeeded()) ToggleTypeBehaviorSlotClass = ToggleBehaviorFinder.Class;
 }
 
 void AStrategyGameBaseHUD::BeginPlay()
@@ -49,6 +55,7 @@ void AStrategyGameBaseHUD::BeginPlay()
 
 	CreateMainWidget();
 	CreateHealthStatisticsWidget();
+	CreateActionGrid();
 	GetOwningPlayerController()->GetOnNewPawnNotifier().AddUObject(this, &AStrategyGameBaseHUD::OnNewControlledPawn);
 
 	auto const Controller = Cast<ASpectatorPlayerController>(GetOwningPlayerController());
@@ -101,7 +108,7 @@ void AStrategyGameBaseHUD::GroupSelectingReleased()
 void AStrategyGameBaseHUD::DrawHUD()
 {
 	Super::DrawHUD();
-
+ 
 	if(bGroupSelectionActive)
 	{
 		float Ox , Oy;
@@ -177,25 +184,47 @@ void AStrategyGameBaseHUD::RemoveMainWidget()
 	}
 }
 
-void AStrategyGameBaseHUD::CreateActionGrid(const TArray<UActionBaseSlot*>& Slots)
+void AStrategyGameBaseHUD::CreateActionGrid()
 {
-	if(Slots.Num() <= 0 || ActionGridClass.IsNull()) return;
+	if(ActionGridClass.IsNull()) return;
+	ActionGrid = USyncLoadLibrary::SyncLoadWidget<UActionGridBase>(this, ActionGridClass, GetOwningPlayerController());
+	ActionGrid->AddToViewport();
+	MainWidget->AttachWidgetToLeftBorder(ActionGrid);
+}
+
+void AStrategyGameBaseHUD::AddActionSlots(const TArray<UActionBaseSlot*>& Slots)
+{
+	if(Slots.Num() <= 0) return;
+
+	if(!ActionGrid)
+	{
+		CreateActionGrid();
+	}
+	ActionGrid->AddSlots(Slots);
+}
+
+void AStrategyGameBaseHUD::AddActionSlot(UActionBaseSlot* Slot)
+{
+	if(!Slot) return;
+
+	if(!ActionGrid)
+	{
+		CreateActionGrid();
+	}
 	
-	if(ActionGrid)
+	ActionGrid->AddActionSlot(Slot);
+}
+
+void AStrategyGameBaseHUD::AddActionSlotByIndex(UActionBaseSlot* Slot, const int32 Row, const int32 Column)
+{
+	if(!Slot) return;
+
+	if(!ActionGrid)
 	{
-		ClearActionGrid();
+		CreateActionGrid();
 	}
-	else
-	{
-		ActionGrid = USyncLoadLibrary::SyncLoadWidget<UActionGridBase>(this, ActionGridClass, GetOwningPlayerController());
-		ActionGrid->AddToViewport();
-		if(!MainWidget)
-		{
-			CreateMainWidget();
-		}
-		MainWidget->AttachWidgetToLeftBorder(ActionGrid);
-	}
-	ActionGrid->Init(Slots);
+	
+	ActionGrid->AddSlotByIndex(Slot, Row, Column);
 }
 
 void AStrategyGameBaseHUD::AddImprovementWidgetToGrid(const TArray<UActionBaseSlot*>& Slots)

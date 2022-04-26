@@ -45,5 +45,5 @@ public:
 	/** call if old target be killed or leave see point
 	 *return true if can find > 1 actors
 	 */
-	virtual bool FindNewTarget();
+	virtual bool FindNewTarget() override;
 };

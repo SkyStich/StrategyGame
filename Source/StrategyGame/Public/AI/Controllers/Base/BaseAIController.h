@@ -17,6 +17,8 @@ enum class EOrderType : uint8
 	MoveToTarget
 };
 
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOrderTypeChanged);
+
 UCLASS()
 class STRATEGYGAME_API ABaseAIController : public AAIController
 {
@@ -26,18 +28,26 @@ public:
 
 	ABaseAIController();
 
+	UFUNCTION(Client, Unreliable)
+	void Client_ToggleAggressiveTypeChanged();
+
+	UFUNCTION(Server, Unreliable)
+	void Server_ToggleAggressiveType(EAIAggressiveType Type);
+
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 	virtual void Tick(float DeltaTime) override;
 	virtual void MoveToGiveOrder(const FVector& Location, AActor* NewTargetActor);
 	virtual void StopChasingTarget() {}
-
+	virtual bool FindNewTarget() { return false; }
+	
 	EAIAggressiveType GetAggressiveType() const { return AggressiveType; }
 	bool IsWaitCommandType() const { return AggressiveType == EAIAggressiveType::WaitCommand; }
 	EOrderType GetOrderType() const { return OrderType; }
 	FName GetFilterName() const { return FilterName; }
+	UAISenseConfig_Sight* GetSightConfig() { return SightConfig; }
 
 	UFUNCTION(BlueprintCallable)
-	void ToggleAggressiveType();
+	void ToggleAggressiveType(EAIAggressiveType Type);
 	
 protected:
 
@@ -54,6 +64,11 @@ protected:
 	virtual void OnBuildDestroyedTypeActive();
 	virtual void OnWaitCommandTypeActive();
 	virtual void OnAttackTypeActive();
+
+public:
+
+	UPROPERTY(BlueprintAssignable)
+	FOrderTypeChanged OnOrderTypeChanged;
 
 protected:
 

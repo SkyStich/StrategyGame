@@ -14,9 +14,11 @@
 
 void ABaseBuilderPawn::HighlightedActor_Implementation(AStrategyGameBaseHUD* PlayerHUD)
 {
+	Super::HighlightedActor_Implementation(PlayerHUD);
+	
 	auto const DataTable = GetGameInstance()->GetSubsystem<UGameAIPawnSubsystem>()->GetBuilderDataByTeam(OwnerTeam);
 	if(!DataTable) return;
-
+	
 	TArray<UActionBaseSlot*> Slots; 
 	for(auto ByArray : DataTable->GetRowNames())
 	{
@@ -33,7 +35,7 @@ void ABaseBuilderPawn::HighlightedActor_Implementation(AStrategyGameBaseHUD* Pla
 			Slots.Add(Slot);
 		}
 	}
-	PlayerHUD->CreateActionGrid(Slots);
+	PlayerHUD->AddActionSlots(Slots);
 }
 
 bool ABaseBuilderPawn::GiveOrderToTargetPawn_Implementation(const FVector& LocationToMove, AActor* ActorToMove)

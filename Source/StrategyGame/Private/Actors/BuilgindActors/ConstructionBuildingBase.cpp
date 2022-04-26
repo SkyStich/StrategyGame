@@ -58,3 +58,11 @@ void AConstructionBuildingBase::StopObjectRepair_Implementation(float const Valu
 	ObjectHealthComponent->AddRegenerationValuePerSec(Value * -1);
 }
 
+void AConstructionBuildingBase::InstantObjectInstallation(int32 const MaxHealth)
+{
+	if(GetLocalRole() != ROLE_Authority) return;
+
+	ObjectHealthComponent->SetMaxHealthByDefault(MaxHealth);
+	bBuildingConstruction = true;
+	ConstructionSucceeded();
+}

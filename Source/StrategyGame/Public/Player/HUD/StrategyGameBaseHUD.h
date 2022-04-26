@@ -9,6 +9,8 @@
 #include "Player/PlayerController/SpectatorPlayerController.h"
 #include "Player/UI/ActionSlots/Base/ActionSpawnBuildingSlot.h"
 #include "Player/UI/ActionSlots/Base/ActionSpawnPawnSlotBase.h"
+#include "Player/UI/ActionSlots/Base/DestroyHighlightedObjectSlot.h"
+#include "Player/UI/ActionSlots/Base/ToggleTypeOfBehavior.h"
 #include "Player/UI/HealthStatistics/HealthStatisticsBase.h"
 #include "StrategyGameBaseHUD.generated.h"
 
@@ -26,12 +28,15 @@ class STRATEGYGAME_API AStrategyGameBaseHUD : public AHUD, public IMatchPlayerHU
 public:
 
 	AStrategyGameBaseHUD();
-	
+
+	void AddActionSlot(UActionBaseSlot* Slot);
+	void AddActionSlots(const TArray<class UActionBaseSlot*>& Slots);
+	void AddActionSlotByIndex(UActionBaseSlot* Slot, const int32 Row, const int32 Column);
 	void SetGroupSelectionActive(bool const IsActive) { bGroupSelectionActive = IsActive; }
 	virtual UBaseMatchWidget* GetMainMatchWidget_Implementation() override { return MainWidget; }
 
 	UFUNCTION(BlueprintCallable)
-	void CreateActionGrid(const TArray<class UActionBaseSlot*>& Slots);
+	void CreateActionGrid();
 
 	void AddImprovementWidgetToGrid(const TArray<class UActionBaseSlot*>& Slots);
 	void ClearActionGrid();
@@ -44,7 +49,9 @@ public:
 	TAssetSubclassOf<UImprovementSlotBase> GetImprovementSlotClass() const { return ImprovementSlotClass; }
 	TSubclassOf<class UBuildingSpawnProgressSlotBase> GetBuildingProgressSlotClass() const { return BuildingProgressSlotClass; }
 	TSubclassOf<class UBuildingSpawnProgressSlotBase> GetBuildingImprovementProgressSlotClass() const { return BuildingImprovementProgressSlotClass; }
-	TSubclassOf<UActionSpawnBuildingSlot> GetSpawnBuildingSlotClass() const { return SpawnBuildingSlotClass; } 
+	TSubclassOf<UActionSpawnBuildingSlot> GetSpawnBuildingSlotClass() const { return SpawnBuildingSlotClass; }
+	TSubclassOf<UDestroyHighlightedObjectSlot> GetDestroyObjectSlot() const { return DestroyHighlightedObjectSlotClass; }
+	TSubclassOf<UToggleTypeOfBehavior> GetToggleBehaviorType() const { return ToggleTypeBehaviorSlotClass; }
 	/** Set visibility to ESlateVisible::Visibility */
 	virtual void ShowHealthStatistics(AActor* Target);
 
@@ -92,6 +99,12 @@ protected:
 
 	UPROPERTY()
 	TAssetSubclassOf<class UActionGridBase> ActionGridClass;
+
+	UPROPERTY()
+	TSubclassOf<UDestroyHighlightedObjectSlot> DestroyHighlightedObjectSlotClass;
+
+	UPROPERTY()
+	TSubclassOf<UToggleTypeOfBehavior> ToggleTypeBehaviorSlotClass;
 
 	/** progress slots */
 	UPROPERTY()

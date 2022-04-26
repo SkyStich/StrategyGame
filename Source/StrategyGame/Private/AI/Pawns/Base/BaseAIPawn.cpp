@@ -10,7 +10,7 @@
 #include "GameFramework/CharacterMovementComponent.h"
 #include "Components/CapsuleComponent.h"
 #include "ActorComponents/Actors/ObjectHealthComponent.h"
-#include "GameInstance/Subsystems/GameAIPawnSubsystem.h"
+#include "Perception/AIPerceptionComponent.h"
 #include "Kismet/GameplayStatics.h"
 
 // Sets default values
@@ -34,6 +34,7 @@ ABaseAIPawn::ABaseAIPawn()
 	ObjectHealthComponent = CreateDefaultSubobject<UObjectHealthComponent>(TEXT("ObjectHealthComponent"));
 
 	bUseControllerRotationYaw = true;
+	AutoPossessAI = EAutoPossessAI::PlacedInWorld;
 }
 
 // Called when the game starts or when spawned
@@ -65,6 +66,7 @@ void ABaseAIPawn::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
+	if(GetLocalRole() != ROLE_Authority) return;
 #if UE_EDITOR
 	DrawDebugSphere(GetWorld(), GetActorLocation(), AttackData.BaseDistanceForAttack, 8, FColor::Red, false, 0.f);
 #endif
@@ -117,4 +119,32 @@ void ABaseAIPawn::InitPawn(const FAIPawnData& PawnData)
 		AttackData.BaseDistanceForAttack = PawnData.BaseRangeAttack;
 		SetHealthDefault(PawnData.BaseHealth);
     }
+}
+
+void ABaseAIPawn::PossessedBy(AController* NewController)
+{
+	Super::PossessedBy(NewController);
+
+}
+
+void ABaseAIPawn::HighlightedActor_Implementation(AStrategyGameBaseHUD* PlayerHUD)
+{
+	if(GetLocalRole() == ROLE_Authority) return;
+	
+	auto const DestroySlot = CreateWidget<UDestroyHighlightedObjectSlot>(PlayerHUD->GetOwningPlayerController(), PlayerHUD->GetDestroyObjectSlot());
+	if(DestroySlot)
+	{
+		DestroySlot->AddToViewport();
+		PlayerHUD->AddActionSlotByIndex(DestroySlot, 3, 3);
+	}
+
+	auto const ToggleAggressiveTypeSlot = CreateWidget<UToggleTypeOfBehavior>(PlayerHUD->GetOwningPlayerController(), PlayerHUD->GetToggleBehaviorType());
+	if(ToggleAggressiveTypeSlot)
+	{
+		ToggleAggressiveTypeSlot->AddToViewport();
+			
+		auto const AIController = Cast<ABaseAIController>(Controller);
+		ToggleAggressiveTypeSlot->SetOwnerAIController(AIController);
+		PlayerHUD->AddActionSlotByIndex(ToggleAggressiveTypeSlot, 2, 2);
+	}
 }

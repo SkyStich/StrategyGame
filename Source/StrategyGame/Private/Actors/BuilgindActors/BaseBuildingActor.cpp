@@ -217,7 +217,11 @@ void ABaseBuildingActor::OnSpawnPawn(FQueueData QueueData, FVector SpawnLocation
 	{
 		BaseSpawnPawn->SetTeam(OwnerPlayerController->FindObjectTeam_Implementation());
 		BaseSpawnPawn->InitPawn(QueueData.Value);
-		BaseSpawnPawn->FinishSpawning(FTransform(SpawnLocation));
+			BaseSpawnPawn->FinishSpawning(FTransform(SpawnLocation));
+
+		ABaseAIController* AIController = GetWorld()->SpawnActor<ABaseAIController>(BaseSpawnPawn->AIControllerClass,
+			FVector(BaseSpawnPawn->GetActorLocation()), FRotator::ZeroRotator, SpawnParameters);
+	AIController->Possess(BaseSpawnPawn);
 	}
 	RefreshQueue();
 }
@@ -415,7 +419,7 @@ void ABaseBuildingActor::HighlightedActor_Implementation(AStrategyGameBaseHUD* P
 		}
 	}
 	
-	PlayerHUD->CreateActionGrid(SpawnSlots);
+	PlayerHUD->AddActionSlots(SpawnSlots);
 	PlayerHUD->AddImprovementWidgetToGrid(ImprovementSlots);
 	GenerateQueueSlots();
 }

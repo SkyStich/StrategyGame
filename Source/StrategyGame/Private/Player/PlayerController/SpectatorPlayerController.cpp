@@ -21,6 +21,7 @@
 ASpectatorPlayerController::ASpectatorPlayerController(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
 {
 	PrimaryActorTick.bCanEverTick = true;
+	SetTickableWhenPaused(true);
 
 	bShowMouseCursor =  true;
 	bIgnoreHighlighted = false;
@@ -37,7 +38,7 @@ void ASpectatorPlayerController::BeginPlay()
 {
 	Super::BeginPlay();
 
-	if(GetLocalRole() != ROLE_Authority || GetNetMode() == NM_Standalone)
+	if(IsLocalController())
 	{
 		SetInputMode(FInputModeGameOnly());
 		SpawnPostProcess();
@@ -52,13 +53,15 @@ bool ASpectatorPlayerController::ReplicateSubobjects(UActorChannel* Channel, FOu
 void ASpectatorPlayerController::OnPossess(APawn* InPawn)
 {
 	Super::OnPossess(InPawn);
+	
+	SetTickableWhenPaused(false);
 }
 
 void ASpectatorPlayerController::Tick(float DeltaSeconds)
 {
 	Super::Tick(DeltaSeconds);
 
-	if(GetLocalRole() != ROLE_Authority || GetNetMode() == NM_Standalone || GetNetMode() == NM_ListenServer)
+	if(IsLocalController())
 	{
 		UpdateHighlightedActor();
 	}
@@ -180,7 +183,7 @@ void ASpectatorPlayerController::UpdateHighlightedActor()
 	}
 	
 	/** if the object is no longer selected, clear the static variable and turn it off custom depth  */
-	if(IsValid(HighlightedActor))
+	if(HighlightedActor && !HighlightedActor->IsPendingKill())
 	{
 		if(!HighlightedActor->Tags.Contains(HighlightedTag)) UpdateCustomDepthFromActor(HighlightedActor, false);
 		HighlightedActor = nullptr;	
@@ -197,7 +200,6 @@ void ASpectatorPlayerController::UpdateCustomDepthFromActor(AActor* Actor, bool 
 	{
 		TempStaticMesh->SetRenderCustomDepth(bState);
 	}
-
 	/** set custom depth for skeletal mesh */
 	TArray<USkeletalMeshComponent*> SkeletalMeshComponents;
 	Actor->GetComponents<USkeletalMeshComponent>(SkeletalMeshComponents);
@@ -273,7 +275,7 @@ void ASpectatorPlayerController::OnSelectActorReleased()
 {
 	auto StrategyHUD = GetStrategyGameBaseHUD();
 	StrategyHUD->HiddenHealthStatistics();
-	
+
 	FHitResult OutHit;
 	ETraceTypeQuery const TraceChannel = UCollisionProfile::Get()->ConvertToTraceType(bIgnoreHighlighted ? ECC_Camera : ECC_GameTraceChannel1);
 	
@@ -284,6 +286,8 @@ void ASpectatorPlayerController::OnSelectActorReleased()
 		{
 			if(!TargetActors.Contains(OutHit.GetActor()))
 			{
+				StrategyHUD->ClearActionGrid();
+				
 				/** remove custom depth on old target actors */
 				if(TargetActors.Num() > 0)
 				{

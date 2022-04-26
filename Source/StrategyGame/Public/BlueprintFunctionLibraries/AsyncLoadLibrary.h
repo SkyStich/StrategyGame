@@ -8,7 +8,7 @@
 #include "Singleton/SingletonClass.h"
 #include "AsyncLoadLibrary.generated.h"
 
-DECLARE_DYNAMIC_DELEGATE_ThreeParams(FSpawnBuildingComplete, bool, bResult, const FString&, Reference, AActor*, SpawnActor);
+DECLARE_DYNAMIC_DELEGATE_ThreeParams(FSpawnBuildingComplete, bool, bResult, const FString&, Reference, ABaseBuildingActor*, SpawnActor);
 DECLARE_DYNAMIC_DELEGATE_ThreeParams(FAsyncLoadActorInMemoryComplete, bool, bResult, const FString&, Reference, TSubclassOf<AActor>, Actor);
 
 class AsyncLoadInMemoryTask;
@@ -25,7 +25,7 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "SelectObjectAsset|AsyncSpawn", meta = (WorldContext = "WorldContextObject", DisplayName = "Spawn building (Async)"))
     static bool AsyncSpawnBaseBuilding(UObject* WorldContext, TAssetSubclassOf<T> Class, FTransform Transform, FSpawnBuildingComplete Callback)
 	{
-		if(Class.IsNull)
+		if(Class.IsNull())
 		{
 			const FString InstigatorName(WorldContext ? WorldContext->GetFullName() : "Unknown");
 			UE_LOG(LogTemp, Error, TEXT("Asset is nill --%d"), *InstigatorName);

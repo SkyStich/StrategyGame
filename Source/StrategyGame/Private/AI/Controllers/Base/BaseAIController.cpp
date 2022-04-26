@@ -32,7 +32,7 @@ void ABaseAIController::BeginPlay()
 
 void ABaseAIController::OnPossess(APawn* InPawn)
 {
-	Super::OnPossess(InPawn);	
+	Super::OnPossess(InPawn);
 }
 
 void ABaseAIController::Tick(float DeltaTime)
@@ -40,7 +40,7 @@ void ABaseAIController::Tick(float DeltaTime)
 	Super::Tick(DeltaTime);
 
 #if UE_EDITOR
-	if(PerceptionComponent)
+	if(PerceptionComponent && GetLocalRole() == ROLE_Authority)
 	{
 		DrawDebugSphere(GetWorld(), GetPawn()->GetActorLocation(), SightConfig->SightRadius, 8, FColor::Blue, false, 0.f);
 	}
@@ -61,28 +61,29 @@ void ABaseAIController::SenseConfigInit()
 
 	SightConfig = CreateDefaultSubobject<UAISenseConfig_Sight>(TEXT("ConfigSight"));
 	SightConfig->SightRadius = 1800.f;
-	SightConfig->LoseSightRadius = SightConfig->SightRadius + 850.f;
+	SightConfig->LoseSightRadius = SightConfig->SightRadius;
 	SightConfig->PeripheralVisionAngleDegrees = 360.f;
-	SightConfig->AutoSuccessRangeFromLastSeenLocation = 100.f;
 	SightConfig->DetectionByAffiliation.bDetectEnemies = true;
 	SightConfig->DetectionByAffiliation.bDetectFriendlies = true;
 	SightConfig->DetectionByAffiliation.bDetectNeutrals = true;
-	SightConfig->SetMaxAge(2.f);
+	SightConfig->SetMaxAge(0.1f);
 
 	//add sight configuration component to perception component
 	GetPerceptionComponent()->SetDominantSense(*SightConfig->GetSenseImplementation());
 	GetPerceptionComponent()->ConfigureSense(*SightConfig);
+	GetPerceptionComponent()->SetActive(true);
 }
 
 void ABaseAIController::OnMoveCompleted(FAIRequestID RequestID, const FPathFollowingResult& Result)
 {
 	Super::OnMoveCompleted(RequestID, Result);
 	
-	if(Result.Code == EPathFollowingResult::Success || Result.Code == EPathFollowingResult::Aborted)
+	if(Result.Code == EPathFollowingResult::Success)
 	{
 		if(OrderType == EOrderType::MoveToLocation) OrderType = EOrderType::OrderExecuted;
 
 		InitialOrderPoint = GetPawn()->GetActorLocation();
+		FindNewTarget();
 	}
 }
 
@@ -107,10 +108,11 @@ void ABaseAIController::CheckHoldingDistance()
 void ABaseAIController::MoveToGiveOrder(const FVector& Location, AActor* NewTargetActor)
 {
 	if(GetLocalRole() != ROLE_Authority) return;
+	
 	TargetActor = NewTargetActor;
 	InitialOrderPoint = GetPawn()->GetActorLocation();
 
-	if(NewTargetActor)
+	if(TargetActor)
 	{
 		MoveToActor(TargetActor, 25.f);
 		OrderType = EOrderType::MoveToTarget;
@@ -122,43 +124,51 @@ void ABaseAIController::MoveToGiveOrder(const FVector& Location, AActor* NewTarg
 	}
 	ForceNetUpdate();
 }
-
-void ABaseAIController::ToggleAggressiveType()
+	
+void ABaseAIController::ToggleAggressiveType(EAIAggressiveType Type)
 {
+	GEngine->AddOnScreenDebugMessage(-1, 2.f, FColor::Red, TEXT("ToggleAggressiveType"));
+	AggressiveType = Type;
 	switch (AggressiveType)
 	{
 		case EAIAggressiveType::Holding:
 		{
-			AggressiveType = EAIAggressiveType::Pursuit;
-			OnPursuitTypeActive();
+			OnHoldingTypeActive();
 			break;
 		}
 		case EAIAggressiveType::Pursuit:
 		{
-			AggressiveType = EAIAggressiveType::BuildDestroyed;
-			OnBuildDestroyedTypeActive();
+			OnPursuitTypeActive();
 			break;
 		}
 		case EAIAggressiveType::BuildDestroyed:
 		{
-			AggressiveType = EAIAggressiveType::WaitCommand;
-			OnWaitCommandTypeActive();
+			OnBuildDestroyedTypeActive();
 			break;
 		}
 		case EAIAggressiveType::WaitCommand:
 		{
-			AggressiveType = EAIAggressiveType::Attack;
-			OnAttackTypeActive();
+			OnWaitCommandTypeActive();
 			break;
 		}	
 		case EAIAggressiveType::Attack:
 		{
-			AggressiveType = EAIAggressiveType::Holding;
-			OnHoldingTypeActive();
+			OnAttackTypeActive();
 			break;
 		}
 		default: break;
 	}
+	Client_ToggleAggressiveTypeChanged();
+}
+
+void ABaseAIController::Server_ToggleAggressiveType_Implementation(EAIAggressiveType Type)
+{
+	ToggleAggressiveType(Type);	
+}
+
+void ABaseAIController::Client_ToggleAggressiveTypeChanged_Implementation()
+{
+	OnOrderTypeChanged.Broadcast();	
 }
 
 void ABaseAIController::OnHoldingTypeActive()

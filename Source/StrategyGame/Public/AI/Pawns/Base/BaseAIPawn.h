@@ -47,7 +47,9 @@ public:
 	
 	virtual bool GiveOrderToTargetPawn_Implementation(const FVector& LocationToMove, AActor* ActorToMove) override;
 	virtual FText FindObjectName_Implementation() const override { return PawnName; }
+	virtual void HighlightedActor_Implementation(AStrategyGameBaseHUD* PlayerHUD) override;
 	virtual void StopAttack() {}
+	void PossessedBy(AController* NewController) override;
 	
 	void InitPawn(const FAIPawnData& PawnData);
 	void SetTeam(EObjectTeam Team)  { OwnerTeam = Team; }

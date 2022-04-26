@@ -5,6 +5,7 @@
 #include "Net/UnrealNetwork.h"
 #include "AI/Controllers/Base/BaseAIAggressiveController.h"
 #include "DrawDebugHelpers.h"
+#include "Perception/AISenseConfig_Sight.h"
 #include "Kismet/GameplayStatics.h"
 
 ABaseAggressivePawn::ABaseAggressivePawn(const FObjectInitializer& ObjectInitializer)
@@ -33,6 +34,22 @@ void ABaseAggressivePawn::StartAttackTargetActor(AActor* Target)
 	FTimerDelegate TimerDel;
 	TimerDel.BindUObject(this, &ABaseAggressivePawn::AttackTargetActor, Target);
 	GetWorld()->GetTimerManager().SetTimer(RefreshAttackHandle, TimerDel, GetAggressiveAttackData()->BaseDelayBeforeUsed, true);
+}
+
+void ABaseAggressivePawn::PossessedBy(AController* NewController)
+{
+	Super::PossessedBy(NewController);
+
+	if(GetLocalRole() != ROLE_Authority) return;
+
+	auto const BaseAIController = Cast<ABaseAIController>(NewController);
+	if(!BaseAIController) return;
+
+	auto const Config = BaseAIController->GetSightConfig();
+		
+	Config->SightRadius = AttackData.BaseDistanceForAttack * 1.25;
+	Config->LoseSightRadius = BaseAIController->GetSightConfig()->SightRadius;
+	BaseAIController->GetPerceptionComponent()->ConfigureSense(*Config);
 }
 
 void ABaseAggressivePawn::AttackTargetActor(AActor* Target)

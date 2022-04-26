@@ -23,16 +23,16 @@ void ABaseAIAggressiveController::BeginPlay()
 
 void ABaseAIAggressiveController::OnSinglePerceptionUpdated(AActor* Actor, FAIStimulus Stimulus)
 {
-	if(!Actor || !Actor->GetClass()->ImplementsInterface(UFindObjectTeamInterface::StaticClass())) return;
-	if(IFindObjectTeamInterface::Execute_FindObjectTeam(Actor) == GetAggressivePawn()->GetTeam()) return;
-	
+	if(!Actor || !Actor->GetClass()->ImplementsInterface(UFindObjectTeamInterface::StaticClass())
+		|| IFindObjectTeamInterface::Execute_FindObjectTeam(Actor) == GetAggressivePawn()->GetTeam()) return;
+
 	/** if pawn can attack with movement */
 	if(GetPathFollowingComponent()->GetStatus() == EPathFollowingStatus::Moving)
 	{
 		//@todo add logic if pawn can attack with movement
 		return;
 	}
-
+	
 	/** if sensed success */
 	if(Stimulus.WasSuccessfullySensed())
 	{
@@ -49,6 +49,8 @@ void ABaseAIAggressiveController::OnSinglePerceptionUpdated(AActor* Actor, FAISt
 				return;
 			}
 
+			if(OrderType != EOrderType::OrderExecuted) return;
+
 			/**
 			 * if the AI has a filter, we check the current object for its absence and the new object for its presence,
 			 * if all checks are correct, change the current goal
@@ -56,12 +58,12 @@ void ABaseAIAggressiveController::OnSinglePerceptionUpdated(AActor* Actor, FAISt
 			if(!GetFilterName().IsNone() && !TargetActor->Tags.Contains(GetFilterName()) && Actor->Tags.Contains(GetFilterName()))
 			{
 				MoveToGiveOrder(Actor->GetActorLocation(), Actor);
-				StartCheckDistanceForAttack();
 			}
 			return;
 		}
+		
+		if(OrderType != EOrderType::OrderExecuted) return;
 		MoveToGiveOrder(Actor->GetActorLocation(), Actor);
-		StartCheckDistanceForAttack();
 		return;
 	}
 
@@ -137,12 +139,14 @@ void ABaseAIAggressiveController::StopCheckDistanceForAttack()
 void ABaseAIAggressiveController::MoveToGiveOrder(const FVector& Location, AActor* NewTargetActor)
 {
 	Super::MoveToGiveOrder(Location, NewTargetActor);
+
+	if(GetLocalRole() != ROLE_Authority) return;
 	
 	StopCheckDistanceForAttack();
 	
-	if(NewTargetActor)
+	if(TargetActor)
 	{
-		float const Distance = FVector::Dist(GetPawn()->GetActorLocation(), NewTargetActor->GetActorLocation());
+		float const Distance = FVector::Dist(GetPawn()->GetActorLocation(), TargetActor->GetActorLocation());
 		if(Distance <= SightConfig->SightRadius)
 		{
 			StartCheckDistanceForAttack();
@@ -161,7 +165,7 @@ void ABaseAIAggressiveController::StartChasingTarget()
 		}
 	}
 
-	MoveToActor(TargetActor, 15);
+	MoveToActor(TargetActor, 25);
 	StartCheckDistanceForAttack();
 
 	/** Limitation Check for Pursuit Range */
@@ -181,16 +185,20 @@ void ABaseAIAggressiveController::StopChasingTarget()
 
 bool ABaseAIAggressiveController::FindNewTarget()
 {
+	if(!PerceptionComponent->IsActive()) return false;
+
 	TArray<AActor*> PerceivedActors;
-	if(!GetPerceptionComponent()->GetFilteredActors([&](FActorPerceptionInfo Item) -> bool
-	{
-		AActor* Actor = Item.Target.Get();
-		if(!IsValid(Actor)) return false;
-		
-		bool const IsEnemyTeam = IFindObjectTeamInterface::Execute_FindObjectTeam(Actor) != GetAggressivePawn()->GetTeam();
-		return Actor->CanBeDamaged() && IsEnemyTeam;
-	}, PerceivedActors)) return false;
 	
+	GetPerceptionComponent()->GetKnownPerceivedActors(UAISense_Sight::StaticClass(), PerceivedActors);
+	PerceivedActors.RemoveAll([&](AActor* Item) -> bool
+	{
+	if(!IsValid(Item)) return false;
+		
+    bool const IsEnemyTeam = IFindObjectTeamInterface::Execute_FindObjectTeam(Item) != GetAggressivePawn()->GetTeam();
+    return !Item->CanBeDamaged() && !IsEnemyTeam;
+	});
+	
+	if(PerceivedActors.Num() <= 0) return false;
 	
 	Algo::Sort(PerceivedActors, [&](AActor* First, AActor* Second) -> bool
     {
@@ -204,8 +212,10 @@ bool ABaseAIAggressiveController::FindNewTarget()
 	/** if the AI does not have a filter, select the nearest target and give it a command */
 	if(GetFilterName().IsNone())
 	{
-		MoveToGiveOrder(TempTarget->GetActorLocation(), TempTarget);
+		MoveToActor(TempTarget);
+		TargetActor = TempTarget;
 		StartCheckDistanceForAttack();
+		ForceNetUpdate();
 		return true;
 	}
 
@@ -219,8 +229,10 @@ bool ABaseAIAggressiveController::FindNewTarget()
 			break;
 		}
 	}
-	MoveToGiveOrder(TempTarget->GetActorLocation(), TempTarget);
+	MoveToActor(TempTarget);
+	TargetActor = TempTarget;
 	StartCheckDistanceForAttack();
+	ForceNetUpdate();
 	return true;
 }
 

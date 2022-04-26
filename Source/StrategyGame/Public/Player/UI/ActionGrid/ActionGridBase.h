@@ -18,7 +18,13 @@ class STRATEGYGAME_API UActionGridBase : public UUserWidget
 public:
 	
 	UFUNCTION(BlueprintImplementableEvent)
-	void Init(const TArray<UActionBaseSlot*>& BuildingSlots);
+	void AddSlots(const TArray<UActionBaseSlot*>& BuildingSlots);
+
+	UFUNCTION(BlueprintImplementableEvent)
+	void AddActionSlot(UActionBaseSlot* ActionSlot);
+
+	UFUNCTION(BlueprintImplementableEvent)
+	void AddSlotByIndex(UActionBaseSlot* ActionSlot, const int32 Row, const int32 Column);
 
 	UFUNCTION(BlueprintImplementableEvent)
 	UUniformGridPanel* GetUniformGridPanel() const;
