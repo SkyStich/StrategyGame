@@ -25,45 +25,41 @@ void ABaseAIAggressiveController::OnSinglePerceptionUpdated(AActor* Actor, FAISt
 {
 	if(!Actor || !Actor->GetClass()->ImplementsInterface(UFindObjectTeamInterface::StaticClass())
 		|| IFindObjectTeamInterface::Execute_FindObjectTeam(Actor) == GetAggressivePawn()->GetTeam()) return;
-
-	/** if pawn can attack with movement */
-	if(GetPathFollowingComponent()->GetStatus() == EPathFollowingStatus::Moving)
-	{
-		//@todo add logic if pawn can attack with movement
-		return;
-	}
 	
 	/** if sensed success */
 	if(Stimulus.WasSuccessfullySensed())
 	{
-		/**
-		 *if controller have target, check this target on eq with sense actor.
-		 *if TargetActor eq with actor clear lose handle and start distance for attack
-		 */
-		if(TargetActor)
+
+		/** if TargetActor eq with actor clear lose handle and start distance for attack */
+		if(TargetActor == Actor)
 		{
-			if(TargetActor == Actor)
-			{
-				GetWorld()->GetTimerManager().ClearTimer(LoseTargetHandle);
-				StartCheckDistanceForAttack();
-				return;
-			}
+			GetWorld()->GetTimerManager().ClearTimer(LoseTargetHandle);
+			StartCheckDistanceForAttack();
+			return;
+		}
 
-			if(OrderType != EOrderType::OrderExecuted) return;
-
-			/**
-			 * if the AI has a filter, we check the current object for its absence and the new object for its presence,
-			 * if all checks are correct, change the current goal
-			 */
-			if(!GetFilterName().IsNone() && !TargetActor->Tags.Contains(GetFilterName()) && Actor->Tags.Contains(GetFilterName()))
-			{
-				MoveToGiveOrder(Actor->GetActorLocation(), Actor);
-			}
+		/** if pawn can attack with movement WITH OUT CURRENT TARGET */
+		if(GetPathFollowingComponent()->GetStatus() == EPathFollowingStatus::Moving)
+		{
+			//@todo add logic if pawn can attack with movement
 			return;
 		}
 		
-		if(OrderType != EOrderType::OrderExecuted) return;
-		MoveToGiveOrder(Actor->GetActorLocation(), Actor);
+		if(!TargetActor)
+		{
+			if(OrderType != EOrderType::OrderExecuted) return;
+			MoveToGiveOrder(Actor->GetActorLocation(), Actor);
+			return;
+		}
+		
+		/**
+		* if the AI has a filter, we check the current object for its absence and the new object for its presence,
+		* if all checks are correct, change the current goal
+		*/
+		if(!GetFilterName().IsNone() && !TargetActor->Tags.Contains(GetFilterName()) && Actor->Tags.Contains(GetFilterName()))
+		{
+			MoveToGiveOrder(Actor->GetActorLocation(), Actor);
+		}
 		return;
 	}
 

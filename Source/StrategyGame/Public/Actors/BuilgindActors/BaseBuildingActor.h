@@ -136,6 +136,8 @@ protected:
 	/** generate queue slots from current queue */
 	UFUNCTION(BlueprintCallable)
 	void GenerateQueueSlots();
+	
+	float GetPing() const;
 
 private:
 

@@ -77,6 +77,8 @@ void ABaseAIController::SenseConfigInit()
 void ABaseAIController::OnMoveCompleted(FAIRequestID RequestID, const FPathFollowingResult& Result)
 {
 	Super::OnMoveCompleted(RequestID, Result);
+
+	if(OrderType == EOrderType::OrderExecuted) return;
 	
 	if(Result.Code == EPathFollowingResult::Success)
 	{

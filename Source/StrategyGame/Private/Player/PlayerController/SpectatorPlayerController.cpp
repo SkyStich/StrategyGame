@@ -54,17 +54,17 @@ void ASpectatorPlayerController::OnPossess(APawn* InPawn)
 {
 	Super::OnPossess(InPawn);
 	
-	SetTickableWhenPaused(false);
+	if(IsLocalController())
+	{
+		SetTickableWhenPaused(false);
+	}
 }
 
 void ASpectatorPlayerController::Tick(float DeltaSeconds)
 {
 	Super::Tick(DeltaSeconds);
-
-	if(IsLocalController())
-	{
-		UpdateHighlightedActor();
-	}
+	
+	UpdateHighlightedActor();
 }
 
 void ASpectatorPlayerController::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
@@ -163,8 +163,8 @@ void ASpectatorPlayerController::UpdateHighlightedActor()
 	
 	if(GetHitResultUnderCursorByChannel(TraceChannel, true, MousePositionResult) && MousePositionResult.GetActor())
 	{
-		if(MousePositionResult.GetActor()->Tags.Contains(HighlightedTag)) return;
-		if(MousePositionResult.GetActor()->GetClass()->ImplementsInterface(UHighlightedInterface::StaticClass()))
+		if(!MousePositionResult.GetActor()->Tags.Contains(HighlightedTag)
+			&& MousePositionResult.GetActor()->GetClass()->ImplementsInterface(UHighlightedInterface::StaticClass()))
 		{
 			if(HighlightedActor)
 			{
@@ -178,8 +178,8 @@ void ASpectatorPlayerController::UpdateHighlightedActor()
 			HighlightedActor = MousePositionResult.GetActor();
 			
 			UpdateCustomDepthFromActor(HighlightedActor, true);
-			return;
 		}
+		return;
 	}
 	
 	/** if the object is no longer selected, clear the static variable and turn it off custom depth  */

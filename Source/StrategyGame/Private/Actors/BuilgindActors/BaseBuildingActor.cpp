@@ -88,15 +88,18 @@ void ABaseBuildingActor::SetOwnerController(ASpectatorPlayerController* Controll
 	OwnerPlayerController = Controller;	
 }
 
+float ABaseBuildingActor::GetPing() const
+{
+	return OwnerPlayerController->PlayerState->GetPing() / 10;
+}
+
 void ABaseBuildingActor::StartProgressTimer(float Time)
 {
 	if(GetLocalRole() != ROLE_Authority && !GetWorld()->GetTimerManager().IsTimerActive(ProgressTimerHandle))
 	{
-		auto const Ping = OwnerPlayerController->PlayerState->GetPing() / 10;
-
 		FTimerDelegate TimerDel;
 		TimerDel.BindUObject(this, &ABaseBuildingActor::OnSpawnComplete);
-		GetWorld()->GetTimerManager().SetTimer(ProgressTimerHandle, TimerDel, Time + Ping, false);
+		GetWorld()->GetTimerManager().SetTimer(ProgressTimerHandle, TimerDel, Time + GetPing(), false);
 	}
 }
 
@@ -105,7 +108,6 @@ void ABaseBuildingActor::RefreshSpawnTimer()
 	GetWorld()->GetTimerManager().ClearTimer(ProgressTimerHandle);
 	if(QueueOfSpawn.Num() <= 0) return;
 	
-	auto const Ping = OwnerPlayerController->PlayerState->GetPing() / 10;
 	FTimerDelegate TimerDel;
 	TimerDel.BindUObject(this, &ABaseBuildingActor::OnSpawnComplete);
 	FQueueData TempData = FQueueData();
@@ -117,7 +119,7 @@ void ABaseBuildingActor::RefreshSpawnTimer()
 			break;
 		}
 	}
-	GetWorld()->GetTimerManager().SetTimer(ProgressTimerHandle, TimerDel, TempData.Value.TimeBeforeSpawn + Ping, false);
+	GetWorld()->GetTimerManager().SetTimer(ProgressTimerHandle, TimerDel, TempData.Value.TimeBeforeSpawn + GetPing(), false);
 }
 
 void ABaseBuildingActor::OnSpawnComplete()
@@ -127,8 +129,7 @@ void ABaseBuildingActor::OnSpawnComplete()
 
 void ABaseBuildingActor::SpawnPawn(const FName& Id)
 {
-	if(QueueOfSpawn.Num() >= 9 - ImprovementQueue.Num() || !GetOwnerController()) return;
-	if(ImprovementQueue.Num() > 0) return;
+	if(QueueOfSpawn.Num() >= (9 - ImprovementQueue.Num()) || !GetOwnerController() || ImprovementQueue.Num() > 0) return;
 	
 	Server_SpawnPawn(Id);
 	
@@ -138,12 +139,12 @@ void ABaseBuildingActor::SpawnPawn(const FName& Id)
 	auto const RowData = PawnData->FindRow<FAIPawnData>(Id, *PawnData->GetName());
 	if(!RowData) return;
 	
-	StartProgressTimer(RowData->TimeBeforeSpawn);
+	StartProgressTimer(RowData->TimeBeforeSpawn + GetPing());
 }
 
 void ABaseBuildingActor::Server_SpawnPawn_Implementation(const FName& Key)
 {
-	if(ImprovementQueue.Num() > 0) return;
+	if(QueueOfSpawn.Num() >= (9 - ImprovementQueue.Num()) || !GetOwnerController() || ImprovementQueue.Num() > 0) return;
 	
 	auto const AISubsystem = GetGameInstance()->GetSubsystem<UGameAIPawnSubsystem>();
 	UDataTable* AIDataTable = AISubsystem->GetPawnDataByTeam(OwnerTeam);
@@ -160,7 +161,7 @@ void ABaseBuildingActor::Server_SpawnPawn_Implementation(const FName& Key)
 
 void ABaseBuildingActor::StartSpawnPawn(const FName& Key)
 {
-	if(GetLocalRole() != ROLE_Authority || QueueOfSpawn.Num() >= 9) return;
+	if(GetLocalRole() != ROLE_Authority) return;
 	
 	FVector const SpawnLocation = FindSpawnLocation();
 	FVector const Ext = BoxCollision->GetScaledBoxExtent() * 1.2f;
@@ -217,7 +218,6 @@ void ABaseBuildingActor::OnSpawnPawn(FQueueData QueueData, FVector SpawnLocation
 	{
 		BaseSpawnPawn->SetTeam(OwnerPlayerController->FindObjectTeam_Implementation());
 		BaseSpawnPawn->InitPawn(QueueData.Value);
-			BaseSpawnPawn->FinishSpawning(FTransform(SpawnLocation));
 
 		ABaseAIController* AIController = GetWorld()->SpawnActor<ABaseAIController>(BaseSpawnPawn->AIControllerClass,
 			FVector(BaseSpawnPawn->GetActorLocation()), FRotator::ZeroRotator, SpawnParameters);
@@ -367,8 +367,7 @@ void ABaseBuildingActor::GenerateQueueSlots()
 
 void ABaseBuildingActor::HighlightedActor_Implementation(AStrategyGameBaseHUD* PlayerHUD)
 {
-	if(!IsBuildConstruction()) return;
-	if(!GetObjectHealthComponent()->IsAlive()) return;
+	if(!IsBuildConstruction() && !GetObjectHealthComponent()->IsAlive()) return;
 	
 	Server_Highlighted();
 	UDataTable* TempSpawnData = GetGameInstance()->GetSubsystem<UGameAIPawnSubsystem>()->GetPawnDataByTeam(OwnerTeam);
